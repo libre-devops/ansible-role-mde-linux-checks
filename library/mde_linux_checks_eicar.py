@@ -38,7 +38,7 @@ options:
   timeout:
     description: Seconds to wait for the detection.
     type: float
-    default: 60
+    default: 120
 author:
   - Craig Thacker
 """
@@ -85,7 +85,7 @@ def main():
         argument_spec=dict(
             directory=dict(type="path", required=True),
             mode=dict(type="str", required=True, choices=["real_time", "audit", "on_demand"]),
-            timeout=dict(type="float", default=60),
+            timeout=dict(type="float", default=120),
         ),
         supports_check_mode=False,
     )

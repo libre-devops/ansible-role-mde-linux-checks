@@ -76,7 +76,7 @@ argument_specs:
       mde_linux_checks_eicar_timeout:
         description: Seconds to wait for the EICAR detection.
         type: int
-        default: 60
+        default: 120
       mde_linux_checks_scan_timeout:
         description: Seconds to let the quick scan run before cancelling it.
         type: int

@@ -12,6 +12,11 @@
 - name: Check the settings
   ansible.builtin.include_tasks: assert.yml
 
+# A role earlier in the play (libre_devops.mde_linux) may have a restart of mdatp waiting: let it
+# happen now, not in the middle of the checks or after them.
+- name: Run the handlers earlier roles notified
+  ansible.builtin.meta: flush_handlers
+
 - name: Probe the host before the checks, waiting for the antivirus engine
   mde_linux_checks_probe:
     sections: [mdatp, service, system]

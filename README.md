@@ -147,6 +147,7 @@ Every check has a stable id. Waivers, limits, expected checks and comparisons in
 | `real_time_subsystem` | Medium | It has a working subsystem (fanotify), not `unavailable`. | |
 | `supplementary_events` | High | EDR events come from eBPF. The netlink fallback fails at medium severity; auditd, unsupported from 101.24082.0004, fails at high. | Kernels without eBPF support give EDR less to see. |
 | `conflicting_applications` | High | No other fanotify-based security product runs in blocking mode. | Microsoft warns they can hang the system. |
+| `offline_cloud_protection` | High | On a host marked offline, cloud-delivered protection is off. | With it on and no route to Microsoft, every lookup waits for the cloud to time out: on a RHEL 9 VM with no internet the EICAR detection took 40.5 s, and 0.4 s with it off. Skipped online. |
 | `engine_signature_verification` | Medium | The engine's signature is checked before it loads. | Default from 101.26062.0007; skipped on older versions. |
 | `folder_permissions` | High | `mdatp health --details permissions` finds no issue. | CIS-style hardening of `/var/opt/microsoft` or `/var/log/microsoft` breaks the agent. |
 | `eicar_detection` | Critical | The EICAR test file is detected: removed at `real_time`, reported at `audit`, found by a custom scan at passive or on-demand. Times the detection. | It is the proof that the antivirus works, not just that it is configured. |
@@ -219,6 +220,7 @@ What runs depends on what the host can reach and whether it is onboarded. Nothin
 | `quick_scan`, EICAR by custom scan | Run | Skipped: mdatp scans on demand only when onboarded | Skipped |
 | `definitions_update`, `definitions_current`, `cloud_connectivity` | Run | Run | Skipped |
 | `onboarded`, `organisation`, `healthy`, `product_expiry` | Run | Skipped | Skipped |
+| `offline_cloud_protection` | Skipped | Skipped | Run |
 
 `mde_linux_checks_online: false` marks an offline host. Onboarding is worked out from the host unless `mde_linux_checks_onboarded` says otherwise.
 
@@ -354,7 +356,7 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 | `mde_linux_checks_min_days_to_expiry` | `30` | Fewest days before the version expires. |
 | `mde_linux_checks_max_definitions_age_hours` | `48` | Oldest security intelligence allowed online. |
 | `mde_linux_checks_engine_timeout` | `300` | Seconds to wait for the engine, before the checks and after the reboot. |
-| `mde_linux_checks_eicar_timeout` | `60` | Seconds to wait for the EICAR detection. |
+| `mde_linux_checks_eicar_timeout` | `120` | Seconds to wait for the EICAR detection. |
 | `mde_linux_checks_scan_timeout` | `1800` | Seconds before the quick scan is cancelled. |
 | `mde_linux_checks_definitions_timeout` | `600` | Seconds for the security intelligence update. |
 | `mde_linux_checks_connectivity_timeout` | `600` | Seconds for the connectivity test. |
@@ -379,6 +381,7 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
   - the reboot was back in about 150 s;
   - the run took 3 minutes 40 seconds.
 - **The same VM, upgraded** from 101.26091.0004 to 101.26101.0000: every `upgrade_` check passed, and memory fell 10.9%.
+- **Live, 15 November 2026, on a RHEL 9.8 Azure VM with no route out** (the azure-orchestration `mde-rhel-offline` stack): mdatp 101.26101.0000 installed from the RPM through the bastion, then the checks with `mde_linux_checks_online: false`. Every check that can run offline passed, and the run took 5 minutes 32 seconds with the install. It found that cloud-delivered protection, on by default, made every detection wait for the cloud: EICAR in 40.5 s, against 0.4 s with `cloudService.enabled: false`. Hence `offline_cloud_protection`.
 - **In CI**, Molecule installs the real mdatp package with `libre_devops.mde_linux` in systemd containers on RHEL 9, Debian 12 and Ubuntu 24.04. A stub `mdatp` command replays the VM's output, or a broken version of it. The package, service, process and system probes are real.
 - **Unit tests** cover every check on the VM's probe data, and on that data changed to break each one.
 - **Not yet tested:**

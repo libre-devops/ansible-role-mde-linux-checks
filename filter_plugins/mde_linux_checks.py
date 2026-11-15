@@ -682,6 +682,49 @@ class Evaluation(object):
                 "mdatp did not report conflicting_applications.",
             )
 
+        # Found on a RHEL 9 VM with no route out: with cloud-delivered protection on, every detection
+        # waited about 40 s for the cloud lookup to time out (EICAR in 40.5 s; 0.4 s with it off).
+        cloud = health.get("cloud_enabled")
+        eicar_seconds = (self.actions.get("eicar") or {}).get("seconds")
+        if self.online:
+            add(
+                "offline_cloud_protection",
+                "Cloud-delivered protection is off on a host that cannot reach the cloud",
+                "skipped",
+                "high",
+                "protection",
+                "The host is online (mde_linux_checks_online is true).",
+            )
+        elif cloud is None:
+            add(
+                "offline_cloud_protection",
+                "Cloud-delivered protection is off on a host that cannot reach the cloud",
+                "error",
+                "high",
+                "protection",
+                "mdatp did not report cloud_enabled.",
+            )
+        else:
+            measured = " (the EICAR test took %.1f s here)" % eicar_seconds if cloud and eicar_seconds else ""
+            add(
+                "offline_cloud_protection",
+                "Cloud-delivered protection is off on a host that cannot reach the cloud",
+                "passed" if cloud is False else "failed",
+                "high",
+                "protection",
+                "cloud_enabled: false."
+                if cloud is False
+                else "cloud_enabled: true on a host that cannot reach the cloud: each lookup waits for the cloud to time out before "
+                "the verdict%s." % measured,
+                expected="false",
+                actual=shown(cloud),
+                remediation=None
+                if cloud is False
+                else "Set cloudService.enabled to false in mdatp_managed.json for hosts "
+                "with no route to Microsoft: on a RHEL 9 test VM detections took 40 s with it on and 0.4 s with it off.",
+                docs=None if cloud is False else DOCS["preferences"],
+            )
+
         verification = self.detail_field("features", "engine_signature_verification")
         if verification is None:
             add(
@@ -793,7 +836,7 @@ class Evaluation(object):
                 if ok
                 else "Removed in %.2f s, but not in the threat history." % seconds
                 if action.get("removed")
-                else "Not removed within %s s." % self.settings.get("eicar_timeout", 60)
+                else "Not removed within %s s." % self.settings.get("eicar_timeout", 120)
             )
             add(
                 "eicar_detection",
@@ -815,7 +858,7 @@ class Evaluation(object):
                 "protection",
                 "Detected as %s in %.2f s (audit mode leaves the file)." % (threat.get("name"), seconds)
                 if ok
-                else "Not detected within %s s." % self.settings.get("eicar_timeout", 60),
+                else "Not detected within %s s." % self.settings.get("eicar_timeout", 120),
                 metrics=metrics,
             )
         else:

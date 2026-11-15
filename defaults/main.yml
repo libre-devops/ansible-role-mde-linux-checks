@@ -41,7 +41,7 @@ mde_linux_checks_max_definitions_age_hours: 48
 
 # How long to wait for things, in seconds.
 mde_linux_checks_engine_timeout: 300
-mde_linux_checks_eicar_timeout: 60
+mde_linux_checks_eicar_timeout: 120
 mde_linux_checks_scan_timeout: 1800
 mde_linux_checks_definitions_timeout: 600
 mde_linux_checks_connectivity_timeout: 600

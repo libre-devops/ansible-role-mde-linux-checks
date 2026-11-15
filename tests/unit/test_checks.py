@@ -128,6 +128,7 @@ def test_the_real_unlicensed_host_passes_with_reasons_for_every_skip():
     skipped = {k for k, c in result.items() if c["status"] == "skipped"}
     assert skipped == {
         "agent_version",
+        "offline_cloud_protection",
         "quick_scan",
         "product_expiry",
         "onboarded",
@@ -341,6 +342,15 @@ def test_supplementary_events(subsystem, status, severity):
 def test_conflicting_applications_fail():
     check = by_id(suite(after=changed(conflicting_applications=["/usr/bin/othersec"])))["conflicting_applications"]
     assert check["status"] == "failed" and "othersec" in check["detail"]
+
+
+def test_cloud_protection_on_an_offline_host_fails():
+    offline = settings(online=False)
+    eicar = {"ran": True, "mode": "real_time", "detected": True, "removed": True, "seconds": 40.5, "threat": {"name": "x"}}
+    check = by_id(suite(settings_=offline, actions_=actions(eicar=eicar)))["offline_cloud_protection"]
+    assert check["status"] == "failed" and "40.5 s" in check["detail"] and check["actual"] == "true"
+    assert by_id(suite(after=changed(cloud_enabled=False), settings_=offline))["offline_cloud_protection"]["status"] == "passed"
+    assert by_id(suite())["offline_cloud_protection"]["status"] == "skipped"
 
 
 def test_folder_permission_issues_fail():
