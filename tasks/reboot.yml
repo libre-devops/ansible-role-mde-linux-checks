@@ -1,0 +1,41 @@
+---
+# A reboot after the checks, then a probe that waits for the engine again: proves the agent
+# comes back by itself, which an upgrade has broken before (101.26042.0000 to 0009).
+
+- name: Note that the reboot is left out
+  ansible.builtin.set_fact:
+    __mde_linux_checks_actions: >-
+      {{ __mde_linux_checks_actions | combine({'reboot': {'ran': false, 'reason':
+           'Not run: check mode.' if ansible_check_mode
+           else ('Not run: mdatp is not installed.' if not __mde_linux_checks_acting
+           else ('Not run: the audit profile does not reboot.' if mde_linux_checks_profile != 'release'
+           else 'Not run: mde_linux_checks_reboot is false.'))}}) }}
+  when: not (__mde_linux_checks_acting | bool and mde_linux_checks_reboot | bool)
+
+- name: Reboot and check Defender comes back
+  when:
+    - __mde_linux_checks_acting | bool
+    - mde_linux_checks_reboot | bool
+  block:
+    - name: Reboot the host
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ mde_linux_checks_reboot_timeout }}"
+        msg: Rebooting for the Defender for Endpoint checks
+      register: __mde_linux_checks_reboot
+      failed_when: false
+
+    - name: Probe the host after the reboot, waiting for the antivirus engine
+      mde_linux_checks_probe:
+        since: "{{ __mde_linux_checks_started }}"
+        sections: [mdatp, service, system, logs]
+        wait_for_engine: "{{ mde_linux_checks_engine_timeout }}"
+      register: __mde_linux_checks_rebooted
+      when: __mde_linux_checks_reboot.rebooted | default(false)
+
+    - name: Record the reboot
+      ansible.builtin.set_fact:
+        __mde_linux_checks_actions: >-
+          {{ __mde_linux_checks_actions | combine({'reboot': {
+               'ran': true, 'seconds': __mde_linux_checks_reboot.elapsed | default(none),
+               'failed': not (__mde_linux_checks_reboot.rebooted | default(false)),
+               'msg': __mde_linux_checks_reboot.msg | default('')}}) }}

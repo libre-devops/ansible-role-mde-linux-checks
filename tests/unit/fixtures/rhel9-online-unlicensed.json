@@ -1,0 +1,584 @@
+{
+ "logs": {
+  "avc_denials": {
+   "available": true,
+   "count": 0,
+   "lines": []
+  },
+  "core_dumps": {
+   "count": 0,
+   "lines": []
+  },
+  "crash_files": [],
+  "error_log": {
+   "counts": {
+    "error": 65,
+    "warning": 63
+   },
+   "lines": [
+    "[9552][140419725194752][2026-11-15 21:08:59.694159 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":11,\"message\":\"Resource temporarily unavailable\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":1386}]},\"context\":[\"Engine client exited\"]}",
+    "[9552][140419691623936][2026-11-15 21:08:59.733015 UTC][error]: [{sensorSdkBridge}]: SensorManager: Failed to update owning PIDs: [rescan_defender_tree] SDK changed during owner-tree scan",
+    "[9552][140419691623936][2026-11-15 21:08:59.733020 UTC][error]: [{sensorSdkBridge}]: Unable to update the owning processes set in sensor sdk. error code: 28",
+    "[9552][140419725194752][2026-11-15 21:08:59.755035 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[9552][140419725194752][2026-11-15 21:09:42.748737 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[9552][140419725194752][2026-11-15 21:09:42.748760 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[9552][140419758765568][2026-11-15 21:12:02.747893 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[9552][140419708409344][2026-11-15 21:12:02.749795 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[9552][140419758765568][2026-11-15 21:12:50.966623 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":11,\"message\":\"Resource temporarily unavailable\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":1386}]},\"context\":[\"Engine client exited\"]}",
+    "[9552][140419758765568][2026-11-15 21:12:50.966741 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":11,\"message\":\"Resource temporarily unavailable\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":1386}]},\"context\":[\"Engine client exited\"]}",
+    "[9552][140419716802048][2026-11-15 21:12:50.967979 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":11,\"message\":\"Resource temporarily unavailable\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":1386}]},\"context\":[\"Engine client exited\"]}",
+    "[9552][140419492984320][2026-11-15 21:12:51.133641 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":11,\"message\":\"Resource temporarily unavailable\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":383}]},\"context\":[\"Capability state not yet retrieved\"]}",
+    "[1103][140016790149248][2026-11-15 21:13:25.253294 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":2,\"message\":\"No such file or directory\"},\"call_stack\":{\"frames\":[{\"file\":\"json.h\",\"line\":120}]},\"context\":[\"/etc/opt/microsoft/mdatp/host_details.json\"]}",
+    "[1103][140016790149248][2026-11-15 21:13:25.253437 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":2,\"message\":\"No such file or directory\"},\"call_stack\":{\"frames\":[{\"file\":\"json.h\",\"line\":120}]},\"context\":[\"/etc/opt/microsoft/mdatp/host_details.json\"]}",
+    "[1103][140016790149248][2026-11-15 21:13:25.964267 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":5,\"message\":\"Input/output error\"},\"call_stack\":{\"frames\":[{\"file\":\"process_management.cpp\",\"line\":1917}]},\"context\":[\"Capabilities not yet retrieved\"]}",
+    "[1103][140016763770368][2026-11-15 21:13:29.812940 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[1103][140016763770368][2026-11-15 21:13:29.813042 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[1103][140016763770368][2026-11-15 21:13:29.813107 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[1103][140016696628736][2026-11-15 21:13:32.434498 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}",
+    "[1103][140016654665216][2026-11-15 21:13:34.019246 UTC][error]: {\"code\":{\"category\":\"generic\",\"value\":22,\"message\":\"Invalid argument\"},\"call_stack\":{\"frames\":[{\"file\":\"signatures_reader.cpp\",\"line\":57}]},\"context\":[\"Product is not onboarded\"]}"
+   ]
+  },
+  "journal_errors": {
+   "available": true,
+   "count": 0,
+   "lines": []
+  },
+  "since": 1794775608.0
+ },
+ "managed": {
+  "content": {
+   "antivirusEngine": {
+    "enforcementLevel": "real_time"
+   }
+  },
+  "onboarding_file_present": false,
+  "path": "/etc/opt/microsoft/mdatp/managed/mdatp_managed.json",
+  "present": true,
+  "valid": true
+ },
+ "mdatp": {
+  "details": {
+   "antivirus": {
+    "fields": {
+     "enable_file_hash_computation": false,
+     "enforcement_level": "real_time",
+     "last_on_demand_scan_end_time": null,
+     "last_on_demand_scan_files_scanned": null,
+     "last_on_demand_scan_start_time": null,
+     "last_on_demand_scan_threat_count": null,
+     "last_on_demand_scan_type": null,
+     "maximum_on_demand_scan_threads": 2,
+     "passive_mode_enabled": false,
+     "real_time_protection_available": true,
+     "real_time_protection_enabled": true,
+     "real_time_protection_subsystem": "fanotify",
+     "scan_after_definition_update": true,
+     "scan_archives": true,
+     "scan_history_cleanup_interval_hours": 7,
+     "scan_history_maximum_items": 10000,
+     "scan_results_retention_days": 90,
+     "supplementary_events_subsystem": "ebpf"
+    },
+    "managed_fields": [
+     "passive_mode_enabled",
+     "real_time_protection_enabled",
+     "enforcement_level"
+    ],
+    "rc": 0
+   },
+   "definitions": {
+    "fields": {
+     "automatic_definition_update_enabled": true,
+     "definitions_status": "up_to_date",
+     "definitions_update_attempt_minutes_ago": 3,
+     "definitions_update_fail_reason": "",
+     "definitions_update_source_uri": "https://go.microsoft.com/fwlink/?linkid=2144709",
+     "definitions_updated": "Nov 15, 2026 at 09:08:59 PM",
+     "definitions_updated_minutes_ago": 7,
+     "definitions_version": "1.463.319.0",
+     "engine_signature_verification": "enabled",
+     "offline_definition_update": "disabled",
+     "offline_definition_update_fallback_to_cloud": false,
+     "offline_definition_update_verify_sig": "DEPRECATED",
+     "offline_definition_url_configured": ""
+    },
+    "managed_fields": [],
+    "rc": 0
+   },
+   "edr": {
+    "fields": {
+     "edr_configuration_version": null,
+     "edr_device_tags": [],
+     "edr_early_preview_enabled": "disabled",
+     "edr_group_ids": "",
+     "edr_machine_id": "0123456789abcdef0123456789abcdef01234567",
+     "edr_partner_geo_location": null,
+     "edr_preferred_geo": null,
+     "edr_sense_guid": "66666666-7777-4888-8999-aaaaaaaaaaaa"
+    },
+    "managed_fields": [],
+    "rc": 0
+   },
+   "engine": {
+    "fields": {
+     "engine_load_status": "Engine load succeeded",
+     "engine_version": "1.1.26100.2001"
+    },
+    "managed_fields": [],
+    "rc": 0
+   },
+   "features": {
+    "fields": {
+     "behavior_monitoring": "disabled",
+     "behavior_monitoring_status": "disabled",
+     "behavior_monitoring_status_reason": "disabled",
+     "ebpf_supplementary_event_provider": "enabled",
+     "engine_signature_verification": "enabled",
+     "network_protection": "disabled",
+     "offline_definition_update": "disabled",
+     "offline_definition_update_verify_sig": "DEPRECATED"
+    },
+    "managed_fields": [],
+    "rc": 0
+   },
+   "permissions": {
+    "fields": {
+     "definitions_folder": "No permission issues",
+     "logs_folder": "No permission issues",
+     "tmp_folder": "No permission issues"
+    },
+    "managed_fields": [],
+    "rc": 0
+   }
+  },
+  "exclusions": {
+   "exclusions": []
+  },
+  "health": {
+   "advanced_settings": "0/1 enabled",
+   "antivirus_enforcement_level": "real_time",
+   "app_version": "101.26101.0000",
+   "automatic_definition_update_enabled": true,
+   "behavior_monitoring": "disabled",
+   "behavior_monitoring_status": "disabled",
+   "behavior_monitoring_status_reason": "disabled",
+   "cloud_automatic_sample_submission_consent": "safe",
+   "cloud_diagnostic_enabled": false,
+   "cloud_enabled": true,
+   "cloud_pin_certificate_thumbs": false,
+   "conflicting_applications": [],
+   "definitions_status": "up_to_date",
+   "definitions_updated": "Nov 15, 2026 at 09:08:59 PM",
+   "definitions_updated_minutes_ago": 7,
+   "definitions_version": "1.463.319.0",
+   "ecs_updated": "Nov 15, 2026 at 09:08:22 PM UTC",
+   "edr_configuration_version": null,
+   "edr_device_tags": [],
+   "edr_early_preview_enabled": "disabled",
+   "edr_group_ids": "",
+   "edr_machine_id": "0123456789abcdef0123456789abcdef01234567",
+   "engine_load_status": "Engine load succeeded",
+   "engine_version": "1.1.26100.2001",
+   "health_issues": [
+    "missing license"
+   ],
+   "healthy": false,
+   "licensed": false,
+   "log_level": "info",
+   "machine_guid": "11111111-2222-4333-8444-555555555555",
+   "network_protection_enforcement_level": "disabled",
+   "network_protection_status": "stopped",
+   "org_id": "",
+   "passive_mode_enabled": false,
+   "product_expiration": null,
+   "real_time_protection_available": true,
+   "real_time_protection_enabled": true,
+   "real_time_protection_subsystem": "fanotify",
+   "release_ring": "Production",
+   "supplementary_events_subsystem": "ebpf"
+  },
+  "health_json": {
+   "$type": "getHealthAllResult",
+   "advancedSettings": "0/1 enabled",
+   "antivirusEnforcementLevel": {
+    "displayValue": true,
+    "isManaged": true,
+    "value": "real_time"
+   },
+   "appVersion": "101.26101.0000",
+   "automaticDefinitionUpdateEnabled": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": true
+   },
+   "behaviorMonitoring": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": "disabled"
+   },
+   "behaviorMonitoringStatus": "disabled",
+   "behaviorMonitoringStatusReason": "disabled",
+   "cloudAutomaticSampleSubmissionConsent": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": "safe"
+   },
+   "cloudDiagnosticEnabled": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": false
+   },
+   "cloudEnabled": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": true
+   },
+   "cloudPinCertificateThumbs": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": false
+   },
+   "conflictingApplications": [],
+   "definitionsStatus": {
+    "$type": "upToDate"
+   },
+   "definitionsUpdated": "1794776939694",
+   "definitionsUpdatedMinutesAgo": 7,
+   "definitionsVersion": "1.463.319.0",
+   "ecsConfigurationVersion": "P-R-67109654-36-14,P-R-67109440-22-13,P-R-67109326-2-25",
+   "ecsUpdated": "Nov 15, 2026 at 09:08:22 PM UTC",
+   "edrConfigurationVersion": null,
+   "edrDeviceTags": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": []
+   },
+   "edrEarlyPreviewEnabled": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": "disabled"
+   },
+   "edrGroupIds": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": ""
+   },
+   "edrMachineId": "0123456789abcdef0123456789abcdef01234567",
+   "engineLoadStatus": "Engine load succeeded",
+   "engineVersion": "1.1.26100.2001",
+   "functionalityMode": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": "default"
+   },
+   "healthIssues": [
+    "missing license"
+   ],
+   "healthy": false,
+   "licensed": false,
+   "logLevel": "info",
+   "machineGuid": "11111111-2222-4333-8444-555555555555",
+   "managedBy": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": ""
+   },
+   "networkProtectionEnforcementLevel": {
+    "displayValue": true,
+    "isManaged": false,
+    "value": "disabled"
+   },
+   "networkProtectionStatus": "stopped",
+   "orgId": "",
+   "passiveModeEnabled": {
+    "displayValue": true,
+    "isManaged": true,
+    "value": false
+   },
+   "productExpiration": null,
+   "proxy": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": "None"
+   },
+   "realTimeProtectionAvailable": true,
+   "realTimeProtectionEnabled": {
+    "displayValue": true,
+    "isManaged": true,
+    "value": true
+   },
+   "realTimeProtectionSubsystem": "fanotify",
+   "releaseRing": "Production",
+   "supplementaryEventsSubsystem": "ebpf",
+   "tamperProtectionEnforcementLevel": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": "disabled"
+   },
+   "tamperProtectionErrors": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": []
+   },
+   "telemetryClient": {
+    "displayValue": false,
+    "isManaged": false,
+    "value": "OneDs"
+   }
+  },
+  "health_rc": 0,
+  "health_seconds": 0.075,
+  "health_text": "ATTENTION: No license found. Contact your administrator for help.\nhealthy                                     : false\nhealth_issues                               : [\"missing license\"]\nlicensed                                    : false\nengine_version                              : \"1.1.26100.2001\"\nengine_load_status                          : \"Engine load succeeded\"\napp_version                                 : \"101.26101.0000\"\norg_id                                      : \"\"\nlog_level                                   : \"info\"\nmachine_guid                                : \"11111111-2222-4333-8444-555555555555\"\nrelease_ring                                : \"Production\"\nproduct_expiration                          : unavailable\ncloud_enabled                               : true\ncloud_automatic_sample_submission_consent   : \"safe\"\ncloud_diagnostic_enabled                    : false\ncloud_pin_certificate_thumbs                : false\npassive_mode_enabled                        : false [managed]\nbehavior_monitoring                         : \"disabled\"\nbehavior_monitoring_status                  : \"disabled\"\nbehavior_monitoring_status_reason           : \"disabled\"\nreal_time_protection_enabled                : true [managed]\nreal_time_protection_available              : true\nreal_time_protection_subsystem              : \"fanotify\"\nsupplementary_events_subsystem              : \"ebpf\"\nautomatic_definition_update_enabled         : true\ndefinitions_updated                         : Nov 15, 2026 at 09:08:59 PM\ndefinitions_updated_minutes_ago             : 7\ndefinitions_version                         : \"1.463.319.0\"\ndefinitions_status                          : \"up_to_date\"\nedr_early_preview_enabled                   : \"disabled\"\nedr_device_tags                             : []\nedr_group_ids                               : \"\"\nedr_configuration_version                   : unavailable\nedr_machine_id                              : \"0123456789abcdef0123456789abcdef01234567\"\necs_updated                                 : Nov 15, 2026 at 09:08:22 PM UTC\nconflicting_applications                    : []\nnetwork_protection_status                   : \"stopped\"\nnetwork_protection_enforcement_level        : \"disabled\"\nantivirus_enforcement_level                 : \"real_time\" [managed]\nadvanced_settings                           : \"0/1 enabled\"\n",
+  "license_banner": true,
+  "managed_fields": [
+   "passive_mode_enabled",
+   "real_time_protection_enabled",
+   "antivirus_enforcement_level"
+  ],
+  "path": "/bin/mdatp",
+  "present": true,
+  "threats": {
+   "threats": {
+    "scans": [
+     {
+      "end_time": 1794776937431,
+      "files_scanned": 262,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794776931394,
+      "state": "succeeded",
+      "threats": [],
+      "type": "process"
+     },
+     {
+      "end_time": 1794776942736,
+      "files_scanned": 261,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794776939756,
+      "state": "succeeded",
+      "threats": [],
+      "type": "process"
+     },
+     {
+      "end_time": 1794777101619,
+      "files_scanned": 261,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794776939756,
+      "state": "succeeded",
+      "threats": [],
+      "type": "process"
+     },
+     {
+      "end_time": 1794777110880,
+      "files_scanned": 261,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794776939756,
+      "state": "succeeded",
+      "threats": [],
+      "type": "process"
+     },
+     {
+      "end_time": 1794777122040,
+      "files_scanned": 261,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794776939756,
+      "state": "succeeded",
+      "threats": [],
+      "type": "process"
+     },
+     {
+      "end_time": 1794777122747,
+      "files_scanned": 1,
+      "scheduled": false,
+      "skipped": null,
+      "start_time": 1794777122747,
+      "state": "other",
+      "threats": [
+       {
+        "container_id": null,
+        "detection_time": 1794777122747,
+        "history": [
+         {
+          "key": 1794777122748,
+          "value": "quarantined"
+         }
+        ],
+        "quarantine_pending": null,
+        "threat": {
+         "force_remediate": false,
+         "infected_resources": [
+          {
+           "$type": "infected_file",
+           "container_id": null,
+           "file_permissions": null,
+           "file_quarantined": null,
+           "folder_quarantined": null,
+           "path": "/var/tmp/mdechk/eicar.com",
+           "path_inside_container": null,
+           "proc_namespace_path": null,
+           "process": {
+            "id": 11691,
+            "pid_ns_id": 0,
+            "start_time": 1250900000000
+           },
+           "properties": {
+            "hashes": {
+             "crc": {
+              "first_64k": 2544775363,
+              "full_file": 0,
+              "zero_padded_first_4k": 2398837396,
+              "zero_padded_last_4k": 1080385151
+             },
+             "md5": "RNiGEv6oqPNt6C4SeKuwLw==",
+             "sha1": "M5WFbOgfK3OC3ucmAveYtkLxQUA=",
+             "sha256": "J1oCG7+2SJ5U1HGJn3250WY/xpXsL+KixFOKq/ZR/Q8="
+            },
+            "requires_consent": false,
+            "size": 68
+           },
+           "quarantine_folder": null,
+           "quarantine_resource_id": null,
+           "resource_id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+           "scan_device": 64772,
+           "scan_inode": 16913762,
+           "scan_reason": "close_modified",
+           "scan_type": "real_time"
+          }
+         ],
+         "name": "Virus:DOS/EICAR_Test_File",
+         "signature_sequence": 5866324352432,
+         "signature_sha": "fedcba9876543210fedcba9876543210fedcba98",
+         "status": "infected",
+         "tracking_id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+         "type": "virus"
+        }
+       }
+      ],
+      "type": "real_time"
+     }
+    ]
+   }
+  },
+  "version": "101.26101.0000",
+  "version_rc": 0
+ },
+ "package": {
+  "dependencies_output": "",
+  "dependencies_rc": 0,
+  "installed": [
+   {
+    "arch": "x86_64",
+    "installed_at": 1794776870,
+    "key_id": "be1229cf",
+    "name": "mdatp",
+    "release": "1",
+    "signature": "RSA/SHA256, Wed Oct 21 14:59:24 2026, Key ID eb3e94adbe1229cf",
+    "version": "101.26101.0000"
+   }
+  ],
+  "keys": [
+   "be1229cf",
+   "f748182b"
+  ],
+  "manager": "rpm",
+  "requires": [
+   "/bin/sh",
+   "glibc >= 2.17",
+   "iptables",
+   "libacl",
+   "rpmlib(CompressedFileNames) <= 3.0.4-1",
+   "rpmlib(FileDigests) <= 4.6.0-1",
+   "rpmlib(PayloadFilesHavePrefix) <= 4.0-1"
+  ],
+  "verify_lines": [],
+  "verify_rc": 0
+ },
+ "processes": {
+  "cpu_percent": 0.3,
+  "memory_mib": 381.7,
+  "processes": [
+   {
+    "comm": "wdavdaemon",
+    "cpu_percent": 0.2,
+    "exe": "/opt/microsoft/mdatp/sbin/wdavdaemon",
+    "pid": 1103,
+    "role": "main",
+    "rss_kib": 109976
+   },
+   {
+    "comm": "wdavdaemon",
+    "cpu_percent": 0.1,
+    "exe": "/opt/microsoft/mdatp/sbin/wdavdaemon",
+    "pid": 1404,
+    "role": "edr",
+    "rss_kib": 62880
+   },
+   {
+    "comm": "wdavdaemon",
+    "cpu_percent": 0.0,
+    "exe": "/opt/microsoft/mdatp/sbin/wdavdaemon",
+    "pid": 1532,
+    "role": "unprivileged",
+    "rss_kib": 218032
+   }
+  ],
+  "sample_seconds": 10.0
+ },
+ "service": {
+  "ActiveState": "active",
+  "ExecMainStartTimestamp": "Sun 2026-11-15 21:13:23 UTC",
+  "ExecMainStartTimestampMonotonic": 11890869,
+  "ExecMainStatus": 0,
+  "MainPID": 1103,
+  "MemoryCurrent": "356741120",
+  "NRestarts": 0,
+  "Result": "success",
+  "SubState": "running",
+  "TasksCurrent": "0",
+  "UnitFileState": "enabled",
+  "fapolicyd_active": false,
+  "systemd": true
+ },
+ "system": {
+  "boot_id": "12121212-3434-4565-8787-909090909090",
+  "btf": true,
+  "cpus": 2,
+  "defender_disk_mib": {
+   "/opt/microsoft/mdatp": 432.1,
+   "/var/log/microsoft/mdatp": 1.6,
+   "/var/opt/microsoft/mdatp": 196.2
+  },
+  "filesystems": {
+   "/": "xfs",
+   "/home": "xfs",
+   "/opt": "xfs",
+   "/tmp": "xfs",
+   "/var": "xfs"
+  },
+  "fips_enabled": false,
+  "free_mib": {
+   "/opt": 1481.5,
+   "/tmp": 1937.7,
+   "/var": 9200.4,
+   "/var/log": 9200.4
+  },
+  "kernel": "5.14.0-687.59.1.el9_8.x86_64",
+  "memory_available_mib": 2921.7,
+  "memory_total_mib": 3648.7,
+  "selinux": {
+   "mode": "enforcing",
+   "modules": [
+    "audisp_mdatp_rhel77",
+    "mdatp_service"
+   ],
+   "present": true
+  },
+  "time_synchronised": true,
+  "uptime_seconds": 237.8
+ },
+ "taken_at": 1794777412.7139378
+}

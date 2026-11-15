@@ -1,0 +1,149 @@
+---
+# The tests that act on the host. Each records what happened in __mde_linux_checks_actions and
+# never fails the play: a command that runs out of time is caught and recorded, and the
+# judgement comes later, with every result in.
+
+- name: Note the tests that will not run, and why
+  ansible.builtin.set_fact:
+    __mde_linux_checks_actions: >-
+      {{ __mde_linux_checks_actions | combine({
+           'definitions_update': {'ran': false, 'reason': __mde_linux_checks_blocked or (
+              'The host is offline (mde_linux_checks_online is false).' if not mde_linux_checks_online | bool
+              else __mde_linux_checks_off.definitions_update)},
+           'connectivity': {'ran': false, 'reason': __mde_linux_checks_blocked or (
+              'The host is offline (mde_linux_checks_online is false).' if not mde_linux_checks_online | bool
+              else 'mde_linux_checks_connectivity_test is false.')},
+           'eicar': {'ran': false, 'reason': __mde_linux_checks_blocked
+              or __mde_linux_checks_off.eicar},
+           'quick_scan': {'ran': false, 'reason': __mde_linux_checks_blocked
+              or __mde_linux_checks_off.quick_scan},
+         }) }}
+  vars:
+    __mde_linux_checks_audit: "{{ mde_linux_checks_profile != 'release' }}"
+    __mde_linux_checks_off:
+      definitions_update: >-
+        {{ 'The audit profile does not update security intelligence.' if __mde_linux_checks_audit | bool
+           else 'mde_linux_checks_definitions_update is false.' }}
+      eicar: >-
+        {{ 'The audit profile does not write the EICAR test file.' if __mde_linux_checks_audit | bool
+           else 'mde_linux_checks_eicar is false.' }}
+      quick_scan: >-
+        {{ 'The audit profile does not scan.' if __mde_linux_checks_audit | bool else 'mde_linux_checks_quick_scan is false.' }}
+    __mde_linux_checks_blocked: >-
+      {{ 'Not run in check mode.' if ansible_check_mode
+         else ('Not run: mdatp is not installed.' if not __mde_linux_checks_acting | bool else '') }}
+
+- name: Update security intelligence
+  when:
+    - __mde_linux_checks_acting | bool
+    - mde_linux_checks_definitions_update | bool
+  block:
+    - name: Run mdatp definitions update
+      ansible.builtin.command:
+        cmd: mdatp definitions update
+      register: __mde_linux_checks_definitions
+      changed_when: __mde_linux_checks_definitions.rc == 0
+      failed_when: false
+      timeout: "{{ mde_linux_checks_definitions_timeout }}"
+  rescue:
+    - name: Note the update ran out of time
+      ansible.builtin.set_fact:
+        __mde_linux_checks_definitions: "{{ ansible_failed_result | combine({'timed_out': true}) }}"
+  always:
+    - name: Record the update
+      ansible.builtin.set_fact:
+        __mde_linux_checks_actions: >-
+          {{ __mde_linux_checks_actions | combine({'definitions_update': {
+               'ran': true, 'rc': __mde_linux_checks_definitions.rc | default(-1),
+               'timed_out': __mde_linux_checks_definitions.timed_out | default(false),
+               'seconds': __mde_linux_checks_definitions.delta | default('') | mde_linux_checks_seconds,
+               'stdout': __mde_linux_checks_definitions.stdout | default(''),
+               'stderr': __mde_linux_checks_definitions.stderr | default(''),
+               'msg': __mde_linux_checks_definitions.msg | default('')}}) }}
+
+- name: Test the connection to Defender's cloud services
+  when:
+    - __mde_linux_checks_acting | bool
+    - mde_linux_checks_connectivity_test | bool
+  block:
+    - name: Run mdatp connectivity test
+      ansible.builtin.command:
+        cmd: mdatp connectivity test
+      register: __mde_linux_checks_connectivity
+      changed_when: false
+      failed_when: false
+      timeout: "{{ mde_linux_checks_connectivity_timeout }}"
+  rescue:
+    - name: Note the connectivity test ran out of time
+      ansible.builtin.set_fact:
+        __mde_linux_checks_connectivity: "{{ ansible_failed_result | combine({'timed_out': true}) }}"
+  always:
+    - name: Record the connectivity test
+      ansible.builtin.set_fact:
+        __mde_linux_checks_actions: >-
+          {{ __mde_linux_checks_actions | combine({'connectivity': {
+               'ran': true, 'rc': __mde_linux_checks_connectivity.rc | default(-1),
+               'timed_out': __mde_linux_checks_connectivity.timed_out | default(false),
+               'seconds': __mde_linux_checks_connectivity.delta | default('') | mde_linux_checks_seconds,
+               'stdout': __mde_linux_checks_connectivity.stdout | default(''),
+               'stderr': __mde_linux_checks_connectivity.stderr | default(''),
+               'msg': __mde_linux_checks_connectivity.msg | default('')}}) }}
+
+- name: Test detection with the EICAR test file
+  when:
+    - __mde_linux_checks_acting | bool
+    - mde_linux_checks_eicar | bool
+  block:
+    - name: Write the EICAR test file and wait for Defender to act
+      mde_linux_checks_eicar:
+        directory: "{{ mde_linux_checks_work_dir }}"
+        # Real-time protection removes the file, audit mode reports it and leaves it, and without
+        # real-time protection a custom scan has to find it.
+        mode: >-
+          {{ __mde_linux_checks_level if __mde_linux_checks_level in ['real_time', 'audit'] else 'on_demand' }}
+        timeout: "{{ mde_linux_checks_eicar_timeout }}"
+      register: __mde_linux_checks_eicar_result
+      failed_when: false
+  always:
+    - name: Record the EICAR test
+      ansible.builtin.set_fact:
+        __mde_linux_checks_actions: >-
+          {{ __mde_linux_checks_actions | combine({'eicar': __mde_linux_checks_eicar_result | default({}) | combine({
+               'ran': true, 'directory': mde_linux_checks_work_dir,
+               'failed': __mde_linux_checks_eicar_result.failed | default(true)
+                         or __mde_linux_checks_eicar_result.msg is defined})}) }}
+
+- name: Run a quick scan
+  when:
+    - __mde_linux_checks_acting | bool
+    - mde_linux_checks_quick_scan | bool
+  block:
+    - name: Run mdatp scan quick
+      ansible.builtin.command:
+        cmd: mdatp scan quick
+      register: __mde_linux_checks_scan
+      changed_when: false
+      failed_when: false
+      timeout: "{{ mde_linux_checks_scan_timeout }}"
+  rescue:
+    - name: Note the scan ran out of time
+      ansible.builtin.set_fact:
+        __mde_linux_checks_scan: "{{ ansible_failed_result | combine({'timed_out': true}) }}"
+
+    - name: Cancel the scan that ran out of time
+      ansible.builtin.command:
+        cmd: mdatp scan cancel
+      changed_when: true
+      failed_when: false
+  always:
+    - name: Record the scan
+      ansible.builtin.set_fact:
+        __mde_linux_checks_actions: >-
+          {{ __mde_linux_checks_actions | combine({'quick_scan': {
+               'ran': true, 'rc': __mde_linux_checks_scan.rc | default(-1),
+               'timed_out': __mde_linux_checks_scan.timed_out | default(false), 'timeout': mde_linux_checks_scan_timeout,
+               'seconds': (__mde_linux_checks_scan.delta | default('') | mde_linux_checks_seconds)
+                          or mde_linux_checks_scan_timeout | float,
+               'stdout': __mde_linux_checks_scan.stdout | default(''),
+               'stderr': __mde_linux_checks_scan.stderr | default(''),
+               'msg': __mde_linux_checks_scan.msg | default('')}}) }}

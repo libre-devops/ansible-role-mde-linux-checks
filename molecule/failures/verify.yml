@@ -1,0 +1,24 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars:
+    __verify_results: >-
+      {{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY')
+         ~ '/results-' ~ inventory_hostname ~ '.json') | from_json }}
+    __verify_checks: "{{ dict(__verify_results.checks | map(attribute='id') | zip(__verify_results.checks)) }}"
+  tasks:
+    - name: Check each broken thing fails its own check, saying what was found
+      ansible.builtin.assert:
+        that:
+          - __verify_checks.real_time_protection.status == 'failed'
+          - "'available: false' in __verify_checks.real_time_protection.detail"
+          - __verify_checks.supplementary_events.status == 'failed'
+          - __verify_checks.supplementary_events.severity == 'medium'
+          - __verify_checks.conflicting_applications.status == 'failed'
+          - "'othersecd' in __verify_checks.conflicting_applications.detail"
+          - __verify_checks.folder_permissions.status == 'failed'
+          - __verify_checks.cloud_connectivity.status == 'failed'
+          - __verify_checks.cloud_connectivity.metrics.urls_failed == 1
+          - __verify_checks.agent_installed.status == 'passed'
+        quiet: true

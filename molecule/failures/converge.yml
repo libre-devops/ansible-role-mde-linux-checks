@@ -1,0 +1,23 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    __molecule_out: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    # A container cannot reboot, and the stub answers at once.
+    mde_linux_checks_reboot: false
+    mde_linux_checks_sample_seconds: 3
+    mde_linux_checks_engine_timeout: 30
+    mde_linux_checks_evidence_dir: "{{ __molecule_out }}/evidence"
+    mde_linux_checks_collect_diagnostics: always
+    mde_linux_checks_snapshot_to: "{{ __molecule_out }}/snapshots/{{ inventory_hostname }}.json"
+  roles:
+    - role: libre_devops.mde_linux_checks
+  post_tasks:
+    - name: Keep the results for verify
+      ansible.builtin.copy:
+        dest: "{{ __molecule_out }}/results-{{ inventory_hostname }}.json"
+        content: "{{ mde_linux_checks_test_results | to_nice_json }}\n"
+        mode: "0644"
+      delegate_to: localhost
+      become: false

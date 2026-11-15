@@ -1,0 +1,9 @@
+ATTENTION: No license found. Contact your administrator for help.
+edr_early_preview_enabled                   : "disabled"
+edr_device_tags                             : []
+edr_group_ids                               : ""
+edr_configuration_version                   : unavailable
+edr_machine_id                              : "0123456789abcdef0123456789abcdef01234567"
+edr_sense_guid                              : "66666666-7777-4888-8999-aaaaaaaaaaaa"
+edr_preferred_geo                           : unavailable
+edr_partner_geo_location                    : unavailable

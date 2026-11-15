@@ -1,0 +1,81 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: true
+  vars:
+    __verify_out: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    __verify_results: "{{ lookup('ansible.builtin.file', __verify_out ~ '/results-' ~ inventory_hostname ~ '.json') | from_json }}"
+    __verify_status: "{{ dict(__verify_results.checks | map(attribute='id') | zip(__verify_results.checks | map(attribute='status'))) }}"
+    __verify_rpm: "{{ ansible_facts['pkg_mgr'] in ['dnf', 'yum', 'zypper'] }}"
+  tasks:
+    - name: Check the results match the report's format
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - import json, sys, jsonschema; jsonschema.validate(json.load(open(sys.argv[1])), json.load(open(sys.argv[2])))
+          - "{{ __verify_out }}/results-{{ inventory_hostname }}.json"
+          - "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/tests/unit/fixtures/test-results.schema.json"
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Check what the real package, the service and the stub decide
+      ansible.builtin.assert:
+        that:
+          - __verify_results.suite == 'mde_linux_checks'
+          - __verify_results.properties.app_version == '101.26101.0000'
+          - __verify_status.agent_installed == 'passed'
+          - __verify_status.package_signature == ('passed' if __verify_rpm else 'skipped')
+          - __verify_status.package_dependencies == 'passed'
+          - __verify_status.health_readable == 'passed'
+          - __verify_status.service_running == 'passed'
+          - __verify_status.service_enabled == 'passed'
+          - __verify_status.enforcement_level == 'passed'
+          - __verify_status.real_time_protection == 'passed'
+          - __verify_status.supplementary_events == 'passed'
+          - __verify_status.conflicting_applications == 'passed'
+          - __verify_status.folder_permissions == 'passed'
+          - __verify_status.eicar_detection == 'passed'
+          - __verify_status.quick_scan == 'skipped'
+          - __verify_status.definitions_update == 'passed'
+          - __verify_status.cloud_connectivity == 'passed'
+          - __verify_status.managed_config_valid == 'passed'
+          - __verify_status.managed_config_applied == 'passed'
+          - __verify_status.health_issues == 'passed'
+          - __verify_status.onboarded == 'skipped'
+          - __verify_status.service_survives_reboot == 'skipped'
+          - __verify_status.upgrade_compared == 'skipped'
+        fail_msg: "{{ __verify_results.checks | rejectattr('status', 'in', ['passed', 'skipped']) | list }}"
+        quiet: true
+
+    - name: Check the work directory is gone and the stub saw the EICAR file
+      ansible.builtin.stat:
+        path: /var/tmp/mde-linux-checks
+      register: __verify_work_dir
+
+    - name: Check the host was left clean
+      ansible.builtin.assert:
+        that:
+          - not __verify_work_dir.stat.exists
+        quiet: true
+
+    - name: Find the evidence and the snapshot
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ __verify_out }}/evidence/{{ inventory_hostname }}/probes.json"
+        - "{{ __verify_out }}/evidence/{{ inventory_hostname }}/mdatp-diagnostic.zip"
+        - "{{ __verify_out }}/snapshots/{{ inventory_hostname }}.json"
+      register: __verify_files
+      delegate_to: localhost
+      become: false
+
+    - name: Check the evidence and the snapshot were written
+      ansible.builtin.assert:
+        that:
+          - __verify_files.results | rejectattr('stat.exists') | list | length == 0
+          - (lookup('ansible.builtin.file', __verify_out ~ '/snapshots/' ~ inventory_hostname ~ '.json') | from_json).schema
+            == 'libre_devops.mde_linux_checks_baseline/v1'
+        fail_msg: "Missing: {{ __verify_files.results | rejectattr('stat.exists') | map(attribute='item') | list }}"
+        quiet: true

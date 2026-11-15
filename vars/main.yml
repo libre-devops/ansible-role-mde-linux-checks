@@ -1,0 +1,3 @@
+---
+# Nothing internal is fixed here yet: the checks' tables live in filter_plugins/mde_linux_checks.py.
+__mde_linux_checks_schema: libre_devops.test_results/v1

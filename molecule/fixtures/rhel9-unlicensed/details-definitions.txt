@@ -1,0 +1,14 @@
+ATTENTION: No license found. Contact your administrator for help.
+automatic_definition_update_enabled         : true
+definitions_updated                         : Nov 15, 2026 at 09:08:59 PM
+definitions_updated_minutes_ago             : 34
+definitions_update_attempt_minutes_ago      : 1
+definitions_version                         : "1.463.319.0"
+definitions_status                          : "up_to_date"
+definitions_update_source_uri               : "https://go.microsoft.com/fwlink/?linkid=2144709"
+definitions_update_fail_reason              : ""
+offline_definition_url_configured           : ""
+offline_definition_update                   : "disabled"
+offline_definition_update_verify_sig        : "DEPRECATED"
+engine_signature_verification               : "enabled"
+offline_definition_update_fallback_to_cloud : false

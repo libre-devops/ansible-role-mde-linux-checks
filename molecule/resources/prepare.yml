@@ -1,0 +1,54 @@
+---
+# Install the real mdatp package with libre_devops.mde_linux (real-time protection on, not
+# onboarded), then put the stub mdatp command in front of it with the scenario's fixture set.
+- name: Get libre_devops.mde_linux, pinned, into the scenario's directory
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Install libre_devops.mde_linux from Galaxy
+      ansible.builtin.command:
+        argv:
+          - ansible-galaxy
+          - role
+          - install
+          - --force
+          - --roles-path
+          - "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/roles"
+          - libre_devops.mde_linux,1.1.1
+      changed_when: true
+
+- name: Prepare
+  hosts: all
+  become: true
+  vars:
+    __molecule_fixture_set: "{{ molecule_fixture_set | default('rhel9-unlicensed') }}"
+  tasks:
+    # By path: installed into the scenario's own directory above, so the test never picks up
+    # whatever copy of the role the machine running it has in ~/.ansible/roles.
+    - name: Install the agent
+      ansible.builtin.include_role:  # noqa: role-name[path]
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/roles/libre_devops.mde_linux"
+      vars:
+        mde_linux_onboard: false
+        mde_linux_managed_config:
+          antivirusEngine:
+            enforcementLevel: real_time
+
+    # In place of the real command: sudo's secure_path leaves out /usr/local/bin, so a stub there
+    # would never be found. The agent itself does not use /usr/bin/mdatp.
+    - name: Put the stub mdatp command in place of the real one
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../resources/mdatp-stub.py"
+        dest: /usr/bin/mdatp
+        mode: "0755"
+        follow: false
+        force: true
+
+    # One file, because every file copied into a container is several podman calls.
+    - name: Give the stub its fixtures
+      ansible.builtin.copy:
+        dest: /etc/mdatp-stub.json
+        content: "{{ dict(__molecule_fixtures | map('basename') | zip(query('ansible.builtin.file', *__molecule_fixtures))) | to_json }}"
+        mode: "0644"
+      vars:
+        __molecule_fixtures: "{{ query('ansible.builtin.fileglob', playbook_dir ~ '/../fixtures/' ~ __molecule_fixture_set ~ '/*') }}"

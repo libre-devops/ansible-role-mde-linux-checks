@@ -1,0 +1,82 @@
+---
+# What kind of run this is. release: everything, including the tests that act on the host (the
+# EICAR test file, a quick scan, a security intelligence update and a reboot), for test machines
+# about to be thrown away. audit: read-only checks, safe on servers in use.
+mde_linux_checks_profile: release
+
+# Whether the host can reach Microsoft's cloud. false skips the security intelligence update,
+# the connectivity test and the definitions age, saying why, rather than failing them.
+mde_linux_checks_online: true
+
+# Whether the device should be onboarded: auto (when an onboarding package is on the host, or it
+# is licensed), true or false. Onboarded devices get the tenant checks: licensed, healthy, the
+# organisation.
+mde_linux_checks_onboarded: auto
+
+# What to expect. Empty skips that check, saying so.
+mde_linux_checks_expected_version: ""
+mde_linux_checks_expected_org_id: ""
+# real_time, audit, on_demand or passive. real_time is what exercises the protection; set the
+# level your estate runs.
+mde_linux_checks_expected_enforcement_level: real_time
+# Any mdatp health field and the value (or list of values) it must have, each its own check:
+# {cloud_enabled: true, network_protection_enforcement_level: [audit, block]}.
+mde_linux_checks_expected_health: {}
+
+# Check ids to skip, reported as skipped: [selinux_policy, journal_errors].
+mde_linux_checks_skip: []
+
+# The tests that act on the host. The release profile runs them all; audit runs only the
+# connectivity test, which changes nothing.
+mde_linux_checks_eicar: "{{ mde_linux_checks_profile == 'release' }}"
+mde_linux_checks_quick_scan: "{{ mde_linux_checks_profile == 'release' }}"
+mde_linux_checks_definitions_update: "{{ mde_linux_checks_profile == 'release' and mde_linux_checks_online | bool }}"
+mde_linux_checks_connectivity_test: "{{ mde_linux_checks_online | bool }}"
+mde_linux_checks_reboot: "{{ mde_linux_checks_profile == 'release' }}"
+
+# Thresholds the checks apply themselves. Limits on the metrics the checks report (scan time,
+# memory, CPU) belong in libre_devops.test_results_report's test_results_report_limits.
+mde_linux_checks_min_days_to_expiry: 30
+mde_linux_checks_max_definitions_age_hours: 48
+
+# How long to wait for things, in seconds.
+mde_linux_checks_engine_timeout: 300
+mde_linux_checks_eicar_timeout: 60
+mde_linux_checks_scan_timeout: 1800
+mde_linux_checks_definitions_timeout: 600
+mde_linux_checks_connectivity_timeout: 600
+mde_linux_checks_reboot_timeout: 900
+
+# How long to sample Defender's CPU use, at the end of the checks.
+mde_linux_checks_sample_seconds: 30
+
+# Where the tests put their files on the host. Removed afterwards.
+mde_linux_checks_work_dir: /var/tmp/mde-linux-checks
+
+# Upgrade testing. Before the upgrade, save a snapshot of each host to a file on the control
+# node; after it, compare with that file. Use a path per host:
+# "{{ playbook_dir }}/snapshots/{{ inventory_hostname }}.json".
+mde_linux_checks_snapshot_to: ""
+mde_linux_checks_compare_to: ""
+
+# The health fields an upgrade must leave as they were (the identity fields are always checked).
+mde_linux_checks_preserved_fields:
+  - antivirus_enforcement_level
+  - passive_mode_enabled
+  - real_time_protection_enabled
+  - behavior_monitoring
+  - cloud_enabled
+  - cloud_automatic_sample_submission_consent
+  - automatic_definition_update_enabled
+  - network_protection_enforcement_level
+  - edr_device_tags
+  - edr_group_ids
+  - edr_early_preview_enabled
+  - release_ring
+  - log_level
+
+# A directory on the control node for the evidence: what the probes read on each host, and
+# Microsoft's diagnostic package (mdatp diagnostic create). Empty keeps none.
+mde_linux_checks_evidence_dir: ""
+# When to collect the diagnostic package into the evidence directory: on_failure, always or never.
+mde_linux_checks_collect_diagnostics: on_failure

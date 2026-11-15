@@ -1,0 +1,40 @@
+ATTENTION: No license found. Contact your administrator for help.
+healthy                                     : false
+health_issues                               : ["missing license"]
+licensed                                    : false
+engine_version                              : "1.1.26100.2001"
+engine_load_status                          : "Engine load succeeded"
+app_version                                 : "101.26101.0000"
+org_id                                      : ""
+log_level                                   : "info"
+machine_guid                                : "11111111-2222-4333-8444-555555555555"
+release_ring                                : "Production"
+product_expiration                          : unavailable
+cloud_enabled                               : true
+cloud_automatic_sample_submission_consent   : "safe"
+cloud_diagnostic_enabled                    : false
+cloud_pin_certificate_thumbs                : false
+passive_mode_enabled                        : false [managed]
+behavior_monitoring                         : "disabled"
+behavior_monitoring_status                  : "disabled"
+behavior_monitoring_status_reason           : "disabled"
+real_time_protection_enabled                : true [managed]
+real_time_protection_available              : true
+real_time_protection_subsystem              : "fanotify"
+supplementary_events_subsystem              : "ebpf"
+automatic_definition_update_enabled         : true
+definitions_updated                         : Nov 15, 2026 at 09:08:59 PM
+definitions_updated_minutes_ago             : 34
+definitions_version                         : "1.463.319.0"
+definitions_status                          : "up_to_date"
+edr_early_preview_enabled                   : "disabled"
+edr_device_tags                             : []
+edr_group_ids                               : ""
+edr_configuration_version                   : unavailable
+edr_machine_id                              : "0123456789abcdef0123456789abcdef01234567"
+ecs_updated                                 : unavailable
+conflicting_applications                    : []
+network_protection_status                   : "stopped"
+network_protection_enforcement_level        : "disabled"
+antivirus_enforcement_level                 : "real_time" [managed]
+advanced_settings                           : "0/1 enabled"

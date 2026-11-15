@@ -1,0 +1,37 @@
+---
+galaxy_info:
+  namespace: libre_devops
+  role_name: mde_linux_checks
+  author: Craig Thacker
+  company: Libre DevOps
+  description: >-
+    Test Microsoft Defender for Endpoint on Linux the way a release needs testing: installation, stability,
+    protection (EICAR, real-time, scans), configuration, onboarding, the system, resources, a reboot and upgrades,
+    as test results libre_devops.test_results_report reads
+  license: MIT
+  min_ansible_version: "2.16"
+  issue_tracker_url: https://github.com/libre-devops/ansible-role-mde-linux-checks/issues
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+        - "10"
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+    - name: Ubuntu
+      versions:
+        - noble
+    - name: SLES
+      versions:
+        - "15"
+  galaxy_tags:
+    - defender
+    - mdatp
+    - security
+    - testing
+    - antivirus
+
+dependencies: []

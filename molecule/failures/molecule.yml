@@ -1,0 +1,20 @@
+---
+# The stub answers with broken output (real-time protection unavailable, netlink, a conflicting
+# application, a permission issue, an unreachable URL): each must fail with its own check.
+scenario:
+  test_sequence:
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
+provisioner:
+  name: ansible
+  playbooks:
+    prepare: ../resources/prepare.yml
+  inventory:
+    group_vars:
+      all:
+        molecule_fixture_set: broken

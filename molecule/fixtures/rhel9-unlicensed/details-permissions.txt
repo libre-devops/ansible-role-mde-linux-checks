@@ -1,0 +1,4 @@
+ATTENTION: No license found. Contact your administrator for help.
+definitions_folder                          : No permission issues
+logs_folder                                 : No permission issues
+tmp_folder                                  : No permission issues

@@ -1,0 +1,12 @@
+---
+- name: Check the settings and the host
+  ansible.builtin.assert:
+    that:
+      - mde_linux_checks_onboarded | string | lower in ['auto', 'true', 'false']
+      - not (mde_linux_checks_snapshot_to | length > 0 and mde_linux_checks_snapshot_to == mde_linux_checks_compare_to)
+      - ansible_facts['system'] | default('Linux') == 'Linux'
+    fail_msg: >-
+      mde_linux_checks_onboarded must be auto, true or false, and mde_linux_checks_snapshot_to and
+      mde_linux_checks_compare_to must be different files (take the snapshot before the upgrade, compare after
+      it). The checks are for Linux hosts.
+    quiet: true

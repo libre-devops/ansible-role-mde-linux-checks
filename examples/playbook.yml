@@ -1,0 +1,25 @@
+---
+# Install a release on the release_test hosts, test it and report: just live inventory.ini
+- name: Test the Defender for Endpoint release
+  hosts: release_test
+  become: true
+  vars:
+    test_results_report_title: "mdatp {{ release_version | default('release') }} release test"
+    test_results_report_dir: "{{ playbook_dir }}/artifacts/test-results"
+    test_results_report_limits:
+      - check: quick_scan
+        metric: duration_seconds
+        max: 900
+      - check: resource_usage
+        metric: memory_mib
+        max: 1024
+  roles:
+    - role: libre_devops.mde_linux
+      vars:
+        mde_linux_managed_config:
+          antivirusEngine:
+            enforcementLevel: real_time
+    - role: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_evidence_dir: "{{ playbook_dir }}/artifacts/evidence"
+    - role: libre_devops.test_results_report

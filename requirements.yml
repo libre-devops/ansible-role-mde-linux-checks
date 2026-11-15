@@ -1,0 +1,6 @@
+---
+# Collections for the tests only. The role itself needs nothing beyond ansible-core. The tests'
+# prepare step installs libre_devops.mde_linux itself, pinned, into the scenario's own directory.
+collections:
+  - name: containers.podman
+    version: ">=1.16.0,<2.0.0"

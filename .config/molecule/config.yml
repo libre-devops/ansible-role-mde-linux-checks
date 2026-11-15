@@ -1,0 +1,36 @@
+---
+# Shared by every scenario under molecule/. Each platform boots systemd as PID 1, because the
+# real mdatp package is installed (with libre_devops.mde_linux) and its service runs. The agent
+# cannot license itself or run its antivirus in a container, so the mdatp command is replaced with
+# a stub (molecule/resources/mdatp-stub.py) that replays output captured from real hosts; the
+# package, the service, the processes and the system are real. Pick a platform with:
+# just test default rhel9 (the mck- prefix keeps these containers apart from other roles' tests)
+driver:
+  name: podman
+
+platforms:
+  - name: mck-rhel9
+    image: registry.access.redhat.com/ubi9/ubi-init:latest
+    dockerfile: ../../.config/molecule/Containerfile.j2
+    command: /sbin/init
+    systemd: always
+  - name: mck-debian12
+    image: docker.io/library/debian:12
+    dockerfile: ../../.config/molecule/Containerfile.j2
+    command: /sbin/init
+    systemd: always
+  - name: mck-ubuntu2404
+    image: docker.io/library/ubuntu:24.04
+    dockerfile: ../../.config/molecule/Containerfile.j2
+    command: /sbin/init
+    systemd: always
+
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callback_result_format: yaml
+      interpreter_python: auto_silent
+
+verifier:
+  name: ansible

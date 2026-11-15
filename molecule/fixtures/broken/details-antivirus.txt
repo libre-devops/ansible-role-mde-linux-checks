@@ -1,0 +1,19 @@
+ATTENTION: No license found. Contact your administrator for help.
+passive_mode_enabled                        : false [managed]
+real_time_protection_enabled                : true [managed]
+real_time_protection_available              : false
+real_time_protection_subsystem              : "fanotify"
+supplementary_events_subsystem              : "netlink"
+scan_archives                               : true
+scan_after_definition_update                : true
+scan_history_cleanup_interval_hours         : 7
+scan_results_retention_days                 : 90
+scan_history_maximum_items                  : 10000
+enable_file_hash_computation                : false
+last_on_demand_scan_start_time              : unavailable
+last_on_demand_scan_end_time                : unavailable
+last_on_demand_scan_type                    : unavailable
+last_on_demand_scan_threat_count            : unavailable
+last_on_demand_scan_files_scanned           : unavailable
+maximum_on_demand_scan_threads              : 2
+enforcement_level                           : "real_time" [managed]

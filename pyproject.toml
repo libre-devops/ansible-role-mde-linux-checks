@@ -1,0 +1,43 @@
+# Development tools only. The role needs nothing beyond ansible-core on the control node and the
+# host's own Python (the probe keeps to Python 3.6 for RHEL 8's platform-python).
+[project]
+name = "ansible-role-mde-linux-checks"
+version = "0.0.0"
+description = "Development tools for the libre_devops.mde_linux_checks Ansible role"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ansible-core>=2.21,<2.22",
+  "ansible-lint>=26.10,<27",
+  "jsonschema>=4.23,<5",
+  "molecule>=26.10,<27",
+  "molecule-plugins[podman]>=26.10,<27",
+  "pytest>=8.3,<10",
+  "ruff>=0.12,<1",
+  "yamllint>=1.38,<2",
+  "zizmor>=1.16,<2",
+]
+
+[tool.uv]
+package = false
+
+# Only resolve releases at least a week old, so a freshly published bad release is not picked up.
+exclude-newer = "7 days"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# The modules run on the managed host's Python, which can be 3.6 (RHEL 8's platform-python), and
+# both plugin files keep Ansible's plugin conventions (__future__ imports, __metaclass__).
+"library/*" = ["UP", "SIM105", "E402"]
+"filter_plugins/*" = ["UP"]

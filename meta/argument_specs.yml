@@ -1,0 +1,138 @@
+---
+argument_specs:
+  main:
+    short_description: Test Microsoft Defender for Endpoint on Linux and leave the results for a report
+    description:
+      - Probes the host before and after the checks (and after a reboot), runs the tests the profile allows (the EICAR
+        test file, a quick scan, a security intelligence update, the connectivity test), and judges every result on the
+        control node.
+      - Leaves the results in mde_linux_checks_test_results (format libre_devops.test_results/v1) for
+        libre_devops.test_results_report. No check fails the play.
+    author:
+      - Craig Thacker
+    options:
+      mde_linux_checks_profile:
+        description: release runs everything, including the tests that act on the host; audit is read-only.
+        type: str
+        choices: [release, audit]
+        default: release
+      mde_linux_checks_online:
+        description: Whether the host can reach Microsoft's cloud.
+        type: bool
+        default: true
+      mde_linux_checks_onboarded:
+        description: Whether the device should be onboarded, auto, true or false.
+        type: str
+        default: auto
+      mde_linux_checks_expected_version:
+        description: The mdatp version that should be installed, such as 101.26101.0000. Empty skips the check.
+        type: str
+        default: ""
+      mde_linux_checks_expected_org_id:
+        description: The organisation the device should be onboarded to. Empty skips the check.
+        type: str
+        default: ""
+      mde_linux_checks_expected_enforcement_level:
+        description: The antivirus enforcement level the device should run at. Empty skips the check.
+        type: str
+        choices: ["", real_time, audit, on_demand, passive]
+        default: real_time
+      mde_linux_checks_expected_health:
+        description: Health fields and the value (or list of values) each must have; each becomes a check named health.<field>.
+        type: dict
+        default: {}
+      mde_linux_checks_skip:
+        description: Check ids to skip.
+        type: list
+        elements: str
+        default: []
+      mde_linux_checks_eicar:
+        description: Write the EICAR test file and check Defender detects it.
+        type: bool
+      mde_linux_checks_quick_scan:
+        description: Run a quick scan.
+        type: bool
+      mde_linux_checks_definitions_update:
+        description: Update security intelligence.
+        type: bool
+      mde_linux_checks_connectivity_test:
+        description: Run mdatp connectivity test.
+        type: bool
+      mde_linux_checks_reboot:
+        description: Reboot the host and check Defender comes back.
+        type: bool
+      mde_linux_checks_min_days_to_expiry:
+        description: The fewest days the installed version must have before it expires.
+        type: int
+        default: 30
+      mde_linux_checks_max_definitions_age_hours:
+        description: The oldest security intelligence allowed on an online host, in hours.
+        type: float
+        default: 48
+      mde_linux_checks_engine_timeout:
+        description: Seconds to wait for the antivirus engine to load, before the checks and after the reboot.
+        type: int
+        default: 300
+      mde_linux_checks_eicar_timeout:
+        description: Seconds to wait for the EICAR detection.
+        type: int
+        default: 60
+      mde_linux_checks_scan_timeout:
+        description: Seconds to let the quick scan run before cancelling it.
+        type: int
+        default: 1800
+      mde_linux_checks_definitions_timeout:
+        description: Seconds to let the security intelligence update run.
+        type: int
+        default: 600
+      mde_linux_checks_connectivity_timeout:
+        description: Seconds to let the connectivity test run.
+        type: int
+        default: 600
+      mde_linux_checks_reboot_timeout:
+        description: Seconds to wait for the host to come back from the reboot.
+        type: int
+        default: 900
+      mde_linux_checks_sample_seconds:
+        description: Seconds to sample Defender's CPU use for.
+        type: int
+        default: 30
+      mde_linux_checks_work_dir:
+        description: Directory on the host for the tests' files, removed afterwards.
+        type: path
+        default: /var/tmp/mde-linux-checks
+      mde_linux_checks_snapshot_to:
+        description: A file on the control node to save the host's snapshot to, before an upgrade.
+        type: str
+        default: ""
+      mde_linux_checks_compare_to:
+        description: A snapshot file on the control node to compare the host with, after an upgrade.
+        type: str
+        default: ""
+      mde_linux_checks_preserved_fields:
+        description: Health fields an upgrade must leave unchanged.
+        type: list
+        elements: str
+        default:
+          - antivirus_enforcement_level
+          - passive_mode_enabled
+          - real_time_protection_enabled
+          - behavior_monitoring
+          - cloud_enabled
+          - cloud_automatic_sample_submission_consent
+          - automatic_definition_update_enabled
+          - network_protection_enforcement_level
+          - edr_device_tags
+          - edr_group_ids
+          - edr_early_preview_enabled
+          - release_ring
+          - log_level
+      mde_linux_checks_evidence_dir:
+        description: A directory on the control node for the evidence. Empty keeps none.
+        type: str
+        default: ""
+      mde_linux_checks_collect_diagnostics:
+        description: When to collect mdatp's diagnostic package into the evidence directory.
+        type: str
+        choices: [on_failure, always, never]
+        default: on_failure

@@ -1,0 +1,9 @@
+ATTENTION: No license found. Contact your administrator for help.
+behavior_monitoring                         : "disabled"
+behavior_monitoring_status                  : "disabled"
+behavior_monitoring_status_reason           : "disabled"
+ebpf_supplementary_event_provider           : "enabled"
+network_protection                          : "disabled"
+offline_definition_update                   : "disabled"
+offline_definition_update_verify_sig        : "DEPRECATED"
+engine_signature_verification               : "enabled"

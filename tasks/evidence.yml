@@ -1,0 +1,55 @@
+---
+# What the probes read and what the tests did, kept on the control node beside the report, and
+# Microsoft's diagnostic package when asked for (or when a check failed).
+
+- name: Create the evidence directory for this host
+  ansible.builtin.file:
+    path: "{{ mde_linux_checks_evidence_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0750"
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+- name: Write what the probes read and the tests did
+  ansible.builtin.copy:
+    dest: "{{ mde_linux_checks_evidence_dir }}/{{ inventory_hostname }}/{{ item.name }}"
+    content: "{{ item.content }}"
+    mode: "0640"
+  loop:
+    - name: probes.json
+      content: >-
+        {{ {'before': __mde_linux_checks_before.probe, 'after': __mde_linux_checks_after.probe,
+            'rebooted': __mde_linux_checks_rebooted.probe | default(none),
+            'actions': __mde_linux_checks_actions} | to_nice_json }}
+    - name: mdatp-health.txt
+      content: "{{ __mde_linux_checks_after.probe.mdatp.health_text | default('') }}"
+  loop_control:
+    label: "{{ item.name }}"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+
+- name: Collect Microsoft's diagnostic package
+  when:
+    - __mde_linux_checks_acting | bool
+    - >-
+      mde_linux_checks_collect_diagnostics == 'always'
+      or (mde_linux_checks_collect_diagnostics == 'on_failure' and mde_linux_checks_test_results | mde_linux_checks_failed)
+  block:
+    - name: Create the diagnostic package
+      ansible.builtin.command:
+        argv: [mdatp, diagnostic, create, --path, "{{ mde_linux_checks_work_dir }}/diagnostic"]
+      register: __mde_linux_checks_diagnostic
+      changed_when: true
+      failed_when: false
+
+    - name: Fetch the diagnostic package
+      ansible.builtin.fetch:
+        src: "{{ __mde_linux_checks_diagnostic.stdout | regex_search('created: \"?([^\"]+\\.zip)', '\\1') | first }}"
+        dest: "{{ mde_linux_checks_evidence_dir }}/{{ inventory_hostname }}/mdatp-diagnostic.zip"
+        flat: true
+      when: __mde_linux_checks_diagnostic.stdout | default('') is search('created:')
