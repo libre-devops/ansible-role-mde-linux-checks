@@ -10,12 +10,12 @@ Report vulnerabilities in this role privately, through [GitHub's private vulnera
 |---|---|---|
 | Probes | Read only: mdatp's health, threat history and exclusions, the package database, systemd, `/proc`, the audit log and the journal. | Both |
 | Connectivity test | Network connections from the host to Microsoft's endpoints. | Both, when online |
+| Security intelligence update | Downloads definitions from Microsoft, as the agent does on its own schedule. | Both, when online (`mde_linux_checks_definitions_update`) |
+| Quick scan | Load on the host while it runs. | Both (`mde_linux_checks_quick_scan`) |
 | EICAR test file | Writes the industry's harmless antivirus test string to `mde_linux_checks_work_dir`, then removes the file and its quarantined copy. On an onboarded device this raises an EICAR alert in the tenant, which is expected. | release |
-| Quick scan | Load on the host while it runs. | release |
-| Security intelligence update | Downloads definitions from Microsoft. | release |
 | Reboot | Reboots the host. | release |
 
-Use the `audit` profile on servers in use. The EICAR string is assembled from two halves at run time, so no file in this repository holds it whole.
+Use the `health` profile on servers in use, and turn the quick scan off where its load matters. The EICAR string is assembled from two halves at run time, so no file in this repository holds it whole.
 
 ## What the results hold
 

@@ -8,7 +8,7 @@
       {{ __mde_linux_checks_actions | combine({'reboot': {'ran': false, 'reason':
            'Not run: check mode.' if ansible_check_mode
            else ('Not run: mdatp is not installed.' if not __mde_linux_checks_acting
-           else ('Not run: the audit profile does not reboot.' if mde_linux_checks_profile != 'release'
+           else ('Not run: the health profile does not reboot.' if mde_linux_checks_profile != 'release'
            else 'Not run: mde_linux_checks_reboot is false.'))}}) }}
   when: not (__mde_linux_checks_acting | bool and mde_linux_checks_reboot | bool)
 
@@ -26,7 +26,8 @@
 
     - name: Probe the host after the reboot, waiting for the antivirus engine
       mde_linux_checks_probe:
-        since: "{{ __mde_linux_checks_started }}"
+        # Only what is new since the probe before the reboot, so nothing is counted twice.
+        since: "{{ __mde_linux_checks_after.probe.finished_at | default(__mde_linux_checks_after.probe.taken_at) }}"
         sections: [mdatp, service, system, logs]
         wait_for_engine: "{{ mde_linux_checks_engine_timeout }}"
       register: __mde_linux_checks_rebooted

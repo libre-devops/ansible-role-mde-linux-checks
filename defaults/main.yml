@@ -1,7 +1,8 @@
 ---
-# What kind of run this is. release: everything, including the tests that act on the host (the
-# EICAR test file, a quick scan, a security intelligence update and a reboot), for test machines
-# about to be thrown away. audit: read-only checks, safe on servers in use.
+# What kind of run this is. release: a release test on machines about to be thrown away, with the
+# EICAR test file (which raises an alert in the tenant when onboarded) and a reboot. health: a health
+# check of a device in use, without those two. Both update security intelligence and run a quick
+# scan unless those are turned off below.
 mde_linux_checks_profile: release
 
 # Whether the host can reach Microsoft's cloud. false skips the security intelligence update,
@@ -26,13 +27,19 @@ mde_linux_checks_expected_health: {}
 # Check ids to skip, reported as skipped: [selinux_policy, journal_errors].
 mde_linux_checks_skip: []
 
-# The tests that act on the host. The release profile runs them all; audit runs only the
-# connectivity test, which changes nothing.
-mde_linux_checks_eicar: "{{ mde_linux_checks_profile == 'release' }}"
-mde_linux_checks_quick_scan: "{{ mde_linux_checks_profile == 'release' }}"
-mde_linux_checks_definitions_update: "{{ mde_linux_checks_profile == 'release' and mde_linux_checks_online | bool }}"
+# The tests that act on the host, each on or off. A security intelligence update and a quick scan
+# run in both profiles (the update and the connectivity test only when online); the EICAR test and
+# the reboot only in release.
+mde_linux_checks_definitions_update: "{{ mde_linux_checks_online | bool }}"
+mde_linux_checks_quick_scan: true
 mde_linux_checks_connectivity_test: "{{ mde_linux_checks_online | bool }}"
+mde_linux_checks_eicar: "{{ mde_linux_checks_profile == 'release' }}"
 mde_linux_checks_reboot: "{{ mde_linux_checks_profile == 'release' }}"
+
+# How far back the log-based checks look, in hours: crashes, SELinux denials, journal errors and
+# Defender's error log. A health check sees what happened before the run, not only during it. 0
+# looks only at the run itself.
+mde_linux_checks_history_hours: 24
 
 # Thresholds the checks apply themselves. Limits on the metrics the checks report (scan time,
 # memory, CPU) belong in libre_devops.test_results_report's test_results_report_limits.

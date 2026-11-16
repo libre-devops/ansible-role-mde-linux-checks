@@ -12,9 +12,11 @@ argument_specs:
       - Craig Thacker
     options:
       mde_linux_checks_profile:
-        description: release runs everything, including the tests that act on the host; audit is read-only.
+        description:
+          - release is a release test on throwaway machines, with the EICAR test file and a reboot. health is a health check of a
+            device in use, without those two.
         type: str
-        choices: [release, audit]
+        choices: [release, health]
         default: release
       mde_linux_checks_online:
         description: Whether the host can reach Microsoft's cloud.
@@ -46,11 +48,16 @@ argument_specs:
         type: list
         elements: str
         default: []
+      mde_linux_checks_history_hours:
+        description: How far back the log-based checks (crashes, SELinux denials, journal and error log) look, in hours. 0 looks only at the run.
+        type: float
+        default: 24
       mde_linux_checks_eicar:
         description: Write the EICAR test file and check Defender detects it.
         type: bool
       mde_linux_checks_quick_scan:
         description: Run a quick scan.
+        default: true
         type: bool
       mde_linux_checks_definitions_update:
         description: Update security intelligence.

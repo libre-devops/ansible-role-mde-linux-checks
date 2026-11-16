@@ -19,16 +19,12 @@
               or __mde_linux_checks_off.quick_scan},
          }) }}
   vars:
-    __mde_linux_checks_audit: "{{ mde_linux_checks_profile != 'release' }}"
     __mde_linux_checks_off:
-      definitions_update: >-
-        {{ 'The audit profile does not update security intelligence.' if __mde_linux_checks_audit | bool
-           else 'mde_linux_checks_definitions_update is false.' }}
+      definitions_update: mde_linux_checks_definitions_update is false.
       eicar: >-
-        {{ 'The audit profile does not write the EICAR test file.' if __mde_linux_checks_audit | bool
+        {{ 'The health profile does not write the EICAR test file.' if mde_linux_checks_profile != 'release'
            else 'mde_linux_checks_eicar is false.' }}
-      quick_scan: >-
-        {{ 'The audit profile does not scan.' if __mde_linux_checks_audit | bool else 'mde_linux_checks_quick_scan is false.' }}
+      quick_scan: mde_linux_checks_quick_scan is false.
     __mde_linux_checks_blocked: >-
       {{ 'Not run in check mode.' if ansible_check_mode
          else ('Not run: mdatp is not installed.' if not __mde_linux_checks_acting | bool else '') }}

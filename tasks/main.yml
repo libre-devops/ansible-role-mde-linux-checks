@@ -35,7 +35,7 @@
 
 - name: Probe the host after the checks, sampling Defender's CPU use
   mde_linux_checks_probe:
-    since: "{{ __mde_linux_checks_started }}"
+    since: "{{ __mde_linux_checks_started | float - mde_linux_checks_history_hours | float * 3600 }}"
     sample_seconds: "{{ mde_linux_checks_sample_seconds }}"
   register: __mde_linux_checks_after
 
@@ -92,6 +92,7 @@
         max_definitions_age_hours: "{{ mde_linux_checks_max_definitions_age_hours }}"
         eicar_timeout: "{{ mde_linux_checks_eicar_timeout }}"
         definitions_timeout: "{{ mde_linux_checks_definitions_timeout }}"
+        history_hours: "{{ mde_linux_checks_history_hours }}"
         preserved_fields: "{{ mde_linux_checks_preserved_fields }}"
 
 - name: Create the snapshot's directory on the control node

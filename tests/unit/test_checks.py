@@ -199,6 +199,45 @@ def test_mdatp_dates():
     assert checks.parse_mdatp_date("next spring") is None
 
 
+# --- A host without the agent --------------------------------------------------------------------
+
+
+def without_agent():
+    probe = copy.deepcopy(REAL)
+    probe["mdatp"] = {"present": False}
+    probe["package"]["installed"] = []
+    probe["package"].pop("requires", None)
+    probe["service"].update({"ActiveState": "inactive", "SubState": "dead", "UnitFileState": "", "NRestarts": 0, "MainPID": 0})
+    probe["processes"] = {"processes": [], "memory_mib": 0.0, "sample_seconds": 30}
+    probe["system"]["selinux"]["modules"] = []
+    probe["system"]["defender_disk_mib"] = dict.fromkeys(probe["system"]["defender_disk_mib"])
+    probe["managed"] = {"present": False, "onboarding_file_present": False, "path": "/etc/opt/microsoft/mdatp/managed/mdatp_managed.json"}
+    return probe
+
+
+def test_a_host_without_the_agent_fails_once_and_says_why_everything_else_was_not_checked():
+    probe = without_agent()
+    not_run = {
+        k: {"ran": False, "reason": "Not run: mdatp is not installed."}
+        for k in ("eicar", "quick_scan", "definitions_update", "connectivity", "reboot")
+    }
+    result = by_id(suite(after=probe, before=copy.deepcopy(probe), actions_=dict(not_run, settle={})))
+    failed = {k for k, c in result.items() if c["status"] in ("failed", "error")}
+    assert failed == {"agent_installed"}
+    ran = {k for k, c in result.items() if c["status"] == "passed"}
+    assert ran == {"system_requirements", "disk_space_for_updates", "filesystems_supported", "time_synchronised", "selinux_mode_unchanged"}
+    assert result["disk_space_for_updates"]["name"] == "There is room to install Defender"
+    assert result["service_running"]["detail"] == "Not checked: mdatp is not installed."
+    assert "metrics" not in result["resource_usage"]
+
+
+def test_too_little_room_to_install_fails():
+    probe = without_agent()
+    probe["system"]["free_mib"]["/opt"] = 300.0
+    check = by_id(suite(after=probe, before=copy.deepcopy(probe)))["disk_space_for_updates"]
+    assert check["status"] == "failed" and "the install needs about 600" in check["detail"]
+
+
 # --- Installation ---------------------------------------------------------------------------------
 
 
@@ -269,6 +308,20 @@ def test_a_disabled_service_fails_with_the_known_upgrade_bug_named():
     probe = copy.deepcopy(REAL)
     probe["service"]["UnitFileState"] = "disabled"
     assert "101.26042.0000" in by_id(suite(after=probe))["service_enabled"]["remediation"]
+
+
+def test_restarts_before_the_run_count_too():
+    probe = copy.deepcopy(REAL)
+    probe["service"]["NRestarts"] = 3
+    before = copy.deepcopy(probe)
+    check = by_id(suite(after=probe, before=before))["no_service_restarts"]
+    assert check["status"] == "failed" and check["metrics"]["restarts"] == 3
+    assert check["detail"] == "Restarted by systemd 3 times since it was last started."
+
+
+def test_log_checks_say_how_far_back_they_looked():
+    assert by_id(suite())["no_crashes"]["detail"] == "No core dumps or crash files in the last 24 h."
+    assert by_id(suite(settings_=settings(history_hours=0)))["no_crashes"]["detail"].endswith("since the checks started.")
 
 
 def test_a_crash_fails():

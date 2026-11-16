@@ -9,7 +9,7 @@
 
 # Ansible Role: Defender for Endpoint on Linux checks
 
-Tests Microsoft Defender for Endpoint on Linux the way a release needs testing before it goes to an estate. It covers installation, stability, protection, configuration, onboarding, the system, resource use and a reboot, and compares the host with how it was before an upgrade. Each of its 50-odd checks exists because something real goes wrong: many are named after the agent release that broke it.
+Tests Microsoft Defender for Endpoint on Linux: as a release test before a version goes to an estate, and as a health check of devices already running it. It covers installation, stability, protection, configuration, onboarding, the system, resource use and a reboot, and compares the host with how it was before an upgrade. Each of its 50-odd checks exists because something real goes wrong: many are named after the agent release that broke it.
 
 It judges and records; it does not deploy. Install and configure the agent with [libre_devops.mde_linux](https://github.com/libre-devops/ansible-role-mde-linux), run these checks, then report on them with [libre_devops.test_results_report](https://github.com/libre-devops/ansible-role-test-results-report). The report is readable by people and parsable by pipelines, and judged against your thresholds.
 
@@ -26,7 +26,8 @@ It judges and records; it does not deploy. Install and configure the agent with 
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick start](#quick-start)
-- [Profiles: release and audit](#profiles-release-and-audit)
+- [Profiles: release and health](#profiles-release-and-health)
+- [Health checks of devices in use](#health-checks-of-devices-in-use)
 - [The checks](#the-checks)
 - [Online, offline and onboarded hosts](#online-offline-and-onboarded-hosts)
 - [Testing an upgrade](#testing-an-upgrade)
@@ -95,19 +96,56 @@ Or pin releases from GitHub, as in [`examples/requirements.yml`](./examples/requ
 
 Open `artifacts/test-results/test-results.md` first. The play fails if any check that counts failed.
 
-## Profiles: release and audit
+## Profiles: release and health
 
-| | `release` (default) | `audit` |
+| | `release` (default) | `health` |
 |---|---|---|
-| For | Test machines about to be thrown away | Servers in use: a health audit of an estate |
+| For | A release test on machines about to be thrown away | A health check of devices in use |
 | Reads the host | Yes | Yes |
 | Connectivity test (network only, changes nothing) | Yes, when online | Yes, when online |
-| Security intelligence update | Yes, when online | No |
-| EICAR test file (raises an EICAR alert in the tenant when onboarded: expected) | Yes | No |
-| Quick scan (load on the host for minutes) | Yes | No |
-| Reboot | Yes | No |
+| Security intelligence update (`mde_linux_checks_definitions_update`) | Yes, when online | Yes, when online |
+| Quick scan (`mde_linux_checks_quick_scan`: load on the host for minutes) | Yes | Yes |
+| EICAR test file (`mde_linux_checks_eicar`: raises an EICAR alert in the tenant when onboarded) | Yes | No |
+| Reboot (`mde_linux_checks_reboot`) | Yes | No |
 
-Each test also has its own switch (`mde_linux_checks_eicar`, `_quick_scan`, `_definitions_update`, `_connectivity_test`, `_reboot`). A test left out is reported as skipped, with the reason.
+Every test is its own boolean, so either profile can be adjusted: `mde_linux_checks_quick_scan: false` on servers where the scan's load matters, or `mde_linux_checks_definitions_update: false` to leave updates to the agent's own schedule. A test left out is reported as skipped, with the reason.
+
+## Health checks of devices in use
+
+The same checks answer "is this device healthy?":
+
+```yaml
+- name: Check Defender is healthy across the estate
+  hosts: linux_servers
+  become: true
+  roles:
+    - role: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_profile: health
+        mde_linux_checks_expected_org_id: 00000000-0000-0000-0000-000000000000
+        mde_linux_checks_expected_enforcement_level: real_time
+    - role: libre_devops.test_results_report
+      vars:
+        test_results_report_fail_severity: high      # only high and critical failures fail the run
+        test_results_report_max_failed_hosts: 2      # all are in the report either way
+```
+
+The log-based checks look back `mde_linux_checks_history_hours` (24 by default), so they see what happened before the run, not only during it:
+- `no_crashes`: core dumps and Defender crash files;
+- `selinux_denials`;
+- `journal_errors`;
+- `error_log`.
+
+`no_service_restarts` counts every automatic restart systemd has made since the service was last started.
+
+**A device without the agent** fails `agent_installed` and nothing else. Every check that needs the agent is skipped with "Not checked: mdatp is not installed", and nothing acts on the host: no scan, no EICAR test file, no reboot. The checks that do not need the agent still run, as a readiness check:
+- `system_requirements`;
+- `disk_space_for_updates`, which becomes "There is room to install Defender";
+- `filesystems_supported`;
+- `time_synchronised`;
+- `selinux_mode_unchanged`.
+
+To use the role purely as a readiness check before installing, add `agent_installed` to `mde_linux_checks_skip`.
 
 ## The checks
 
@@ -130,12 +168,12 @@ Every check has a stable id. Waivers, limits, expected checks and comparisons in
 |---|---|---|---|
 | `service_running` | Critical | The `mdatp` unit is active and running. | |
 | `service_enabled` | Critical | It starts at boot. | Versions 101.26042.0000 to 0009 could leave it disabled after an upgrade and reboot. |
-| `no_service_restarts` | High | systemd did not restart it during the checks, and its main process did not change. | 101.26072.0004 could restart `wdavdaemon` while scanning processes. |
-| `no_crashes` | High | No core dump or Defender crash file appeared during the checks. | |
+| `no_service_restarts` | High | systemd has not restarted it since it was last started, and its main process did not change during the checks. | 101.26072.0004 could restart `wdavdaemon` while scanning processes. |
+| `no_crashes` | High | No core dump or Defender crash file in the last `mde_linux_checks_history_hours`. | |
 | `no_unexpected_reboot` | Critical | The boot id did not change (before the deliberate reboot). | 101.25102.0005 fixed real-time scanning of `/dev/watchdog` rebooting hosts. |
-| `error_log` | Info | Defender logged nothing fatal or critical; counts its errors and warnings as metrics. | A device that is not onboarded logs errors all the time, so errors alone are only measured. |
-| `journal_errors` | Low | The unit logged no error-priority journal entries. | |
-| `service_survives_reboot` | Critical | After a reboot the service is running and enabled, the engine loads, real-time protection is available, and no new health issue appeared. Times how long until the host answers. | The 101.26042 upgrade fault showed only after a reboot. Skipped by the audit profile. |
+| `error_log` | Info | Defender logged nothing fatal or critical in the look-back window; counts its errors and warnings as metrics. | A device that is not onboarded logs errors all the time, so errors alone are only measured. |
+| `journal_errors` | Low | The unit logged no error-priority journal entries in the look-back window. | |
+| `service_survives_reboot` | Critical | After a reboot the service is running and enabled, the engine loads, real-time protection is available, and no new health issue appeared. Times how long until the host answers. | The 101.26042 upgrade fault showed only after a reboot. Skipped by the health profile. |
 
 ### Protection
 
@@ -152,7 +190,7 @@ Every check has a stable id. Waivers, limits, expected checks and comparisons in
 | `folder_permissions` | High | `mdatp health --details permissions` finds no issue. | CIS-style hardening of `/var/opt/microsoft` or `/var/log/microsoft` breaks the agent. |
 | `eicar_detection` | Critical | The EICAR test file is detected: removed at `real_time`, reported at `audit`, found by a custom scan at passive or on-demand. Times the detection. | It is the proof that the antivirus works, not just that it is configured. |
 | `quick_scan` | High | `mdatp scan quick` completes, with its time and the files scanned. A scan that runs out of time is cancelled. | 101.26062.0007 fixed scans that hung. mdatp runs on-demand scans only on an onboarded device, so it is skipped otherwise. |
-| `definitions_update` | High | Security intelligence updates from Microsoft. | Skipped offline, and by the audit profile. |
+| `definitions_update` | High | Security intelligence updates from Microsoft. | Skipped offline, or with `mde_linux_checks_definitions_update: false`. |
 | `definitions_current` | High | Definitions are `up_to_date` and no older than `mde_linux_checks_max_definitions_age_hours`. | Skipped offline, naming the version the package shipped. |
 | `product_expiry` | High | The version has at least `mde_linux_checks_min_days_to_expiry` days before it expires. | Each version expires nine months after release. mdatp reports the date only once onboarded. |
 
@@ -181,11 +219,11 @@ Every check has a stable id. Waivers, limits, expected checks and comparisons in
 | Id | Severity | Proves | Why it is here |
 |---|---|---|---|
 | `system_requirements` | High | At least 1 CPU and 1 GiB of memory (870 MiB after the kernel's share). | Microsoft's minimum. |
-| `disk_space_for_updates` | High | `/opt` has room for the next platform update (1.2 times the install) and `/var` for a security intelligence update (twice Defender's data). | An update unpacks beside the old version first. On the Azure RHEL 9 image the 432 MiB install left 1.48 GiB free on `/opt`. |
+| `disk_space_for_updates` | High | `/opt` has room for the next platform update (1.2 times the install) and `/var` for a security intelligence update (twice Defender's data). Without the agent: 600 MiB in `/opt` and 400 MiB in `/var` to install it. | An update unpacks beside the old version first. On the Azure RHEL 9 image the 432 MiB install left 1.48 GiB free on `/opt`. |
 | `filesystems_supported` | Medium | `/`, `/opt`, `/var`, `/tmp` and `/home` are on file systems real-time protection watches. | NFS or CIFS home directories are not protected in real time. |
 | `time_synchronised` | Medium | The clock is NTP-synchronised. | Certificate checks against the cloud fail when it drifts. |
 | `selinux_policy` | Medium | A Defender SELinux module is loaded. | 101.26032.0000 fixed upgrades removing its SELinux modules. Skipped without SELinux. |
-| `selinux_denials` | High | SELinux denied Defender's processes nothing during the checks. | |
+| `selinux_denials` | High | SELinux denied Defender's processes nothing in the look-back window. | Catches install-time denials too. |
 | `selinux_mode_unchanged` | High | The SELinux mode did not change during the checks. | |
 
 ### Resources
@@ -238,7 +276,8 @@ Snapshot the host on the version your estate runs, upgrade it, and compare:
         mde_linux_version: 101.26091.0004
     - role: libre_devops.mde_linux_checks
       vars:
-        mde_linux_checks_profile: audit
+        mde_linux_checks_profile: health
+        mde_linux_checks_quick_scan: false
         mde_linux_checks_snapshot_to: "{{ playbook_dir }}/snapshots/{{ inventory_hostname }}.json"
     - role: libre_devops.test_results_report
       vars:
@@ -340,7 +379,7 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 
 | Variable | Default | Description |
 |---|---|---|
-| `mde_linux_checks_profile` | `release` | `release` runs everything; `audit` is read-only. See [Profiles](#profiles-release-and-audit). |
+| `mde_linux_checks_profile` | `release` | `release` adds the EICAR test and a reboot; `health` leaves them out. See [Profiles](#profiles-release-and-health). |
 | `mde_linux_checks_online` | `true` | Whether the host can reach Microsoft's cloud. |
 | `mde_linux_checks_onboarded` | `auto` | Whether the device should be onboarded: `auto`, `true` or `false`. |
 | `mde_linux_checks_expected_version` | `""` | The version that should be installed. |
@@ -349,10 +388,11 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 | `mde_linux_checks_expected_health` | `{}` | Health fields and the values they must have. |
 | `mde_linux_checks_skip` | `[]` | Check ids to skip. |
 | `mde_linux_checks_eicar` | `true` for release | Run the EICAR test. |
-| `mde_linux_checks_quick_scan` | `true` for release | Run a quick scan. |
-| `mde_linux_checks_definitions_update` | `true` for release, online | Update security intelligence. |
+| `mde_linux_checks_quick_scan` | `true` | Run a quick scan. |
+| `mde_linux_checks_definitions_update` | `true` when online | Update security intelligence. |
 | `mde_linux_checks_connectivity_test` | `true` when online | Run `mdatp connectivity test`. |
 | `mde_linux_checks_reboot` | `true` for release | Reboot and check Defender comes back. |
+| `mde_linux_checks_history_hours` | `24` | How far back the log-based checks look. `0` looks only at the run. |
 | `mde_linux_checks_min_days_to_expiry` | `30` | Fewest days before the version expires. |
 | `mde_linux_checks_max_definitions_age_hours` | `48` | Oldest security intelligence allowed online. |
 | `mde_linux_checks_engine_timeout` | `300` | Seconds to wait for the engine, before the checks and after the reboot. |

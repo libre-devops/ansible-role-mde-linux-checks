@@ -188,6 +188,11 @@ class Evaluation(object):
         self.details = get(self.after, "mdatp", "details") or {}
         self.licensed = self.health.get("licensed") is True
         self.online = bool(self.settings.get("online", True))
+        # The log-based checks look back this far, so a health check of a host in use sees what
+        # happened before the run, not only during it.
+        hours = float(self.settings.get("history_hours", 24))
+        self.window = "in the last %g h" % hours if hours > 0 else "since the checks started"
+        self.installed = bool(get(self.after, "package", "installed")) and bool(get(self.after, "mdatp", "present"))
 
     def detail_field(self, section, field):
         return get(self.details, section, "fields", field)
@@ -214,6 +219,17 @@ class Evaluation(object):
             return False
         return bool(get(self.after, "managed", "onboarding_file_present")) or self.licensed
 
+    # Without the agent these still mean something: whether the host is ready for it.
+    WITHOUT_AGENT = {
+        "agent_installed",
+        "system_requirements",
+        "disk_space_for_updates",
+        "filesystems_supported",
+        "time_synchronised",
+        "selinux_mode_unchanged",
+        "upgrade_compared",
+    }
+
     def run(self):
         self.installation()
         self.stability()
@@ -224,6 +240,16 @@ class Evaluation(object):
         self.resources()
         self.reboot()
         self.upgrade()
+        if not self.installed:
+            # One root cause, not a cascade: every check that needs the agent says it was not
+            # checked, and agent_installed carries the failure.
+            for check in self.suite.checks:
+                if check["id"] in self.WITHOUT_AGENT or check["status"] == "skipped":
+                    continue
+                for key in ("metrics", "output", "remediation", "expected", "actual", "docs"):
+                    check.pop(key, None)
+                check["status"] = "skipped"
+                check["detail"] = "Not checked: mdatp is not installed."
         return self.suite.checks
 
     # --- Installation ------------------------------------------------------------------------
@@ -435,23 +461,27 @@ class Evaluation(object):
                 docs=None if enabled else DOCS["releases"],
             )
 
-            restarts = 0
-            notes = []
-            if isinstance(service.get("NRestarts"), int) and isinstance(before_service.get("NRestarts"), int):
-                restarts = service["NRestarts"] - before_service["NRestarts"]
-                if before_service.get("MainPID") and service.get("MainPID") and before_service["MainPID"] != service["MainPID"]:
-                    notes.append("its main process changed from %s to %s" % (before_service["MainPID"], service["MainPID"]))
-                    restarts = max(restarts, 1)
+            # systemd counts its automatic restarts (Restart=) since the unit was last started by hand:
+            # a crash that systemd recovered from shows here even if it happened before the run.
+            restarts = service["NRestarts"] if isinstance(service.get("NRestarts"), int) else 0
             if self.rebooted and isinstance(get(self.rebooted, "service", "NRestarts"), int):
                 restarts += self.rebooted["service"]["NRestarts"]
+            notes = []
+            if restarts:
+                notes.append("restarted by systemd %s since it was last started" % plural(restarts, "time"))
+            if before_service.get("MainPID") and service.get("MainPID") and before_service["MainPID"] != service["MainPID"]:
+                notes.append("its main process changed from %s to %s during the checks" % (before_service["MainPID"], service["MainPID"]))
             add(
                 "no_service_restarts",
-                "The service did not restart during the checks",
-                "passed" if restarts == 0 else "failed",
+                "The service has not been restarting",
+                "passed" if not notes else "failed",
                 "high",
                 "stability",
-                "No restarts." if restarts == 0 else "%s%s." % (plural(restarts, "restart"), (": " + "; ".join(notes)) if notes else ""),
+                "No automatic restarts since it was last started, and the same main process throughout."
+                if not notes
+                else "; ".join(notes)[:1].upper() + "; ".join(notes)[1:] + ".",
                 metrics={"restarts": restarts},
+                remediation=None if not notes else "journalctl -u mdatp shows why it exited.",
             )
 
         crashes = []
@@ -461,11 +491,13 @@ class Evaluation(object):
             crashes += ["crash file " + name for name in logs.get("crash_files") or []]
         add(
             "no_crashes",
-            "No Defender process crashed during the checks",
+            "No Defender process has crashed recently",
             "passed" if not crashes else "failed",
             "high",
             "stability",
-            "No core dumps or crash files." if not crashes else "%s." % plural(len(crashes), "crash", "crashes"),
+            "No core dumps or crash files %s." % self.window
+            if not crashes
+            else "%s %s." % (plural(len(crashes), "crash", "crashes"), self.window),
             output="\n".join(crashes) if crashes else None,
             metrics={"crashes": len(crashes)},
             remediation=None if not crashes else "Collect mdatp diagnostic create and raise it with Microsoft.",
@@ -516,15 +548,16 @@ class Evaluation(object):
         serious = counts.get("fatal", 0) + counts.get("critical", 0)
         add(
             "error_log",
-            "Defender logged no fatal errors during the checks",
+            "Defender has logged no fatal errors recently",
             "passed" if not serious else "failed",
             "info",
             "stability",
-            "%s, %s, %s logged since the checks started."
+            "%s, %s, %s logged %s."
             % (
                 plural(serious, "fatal or critical entry", "fatal or critical entries"),
                 plural(counts.get("error", 0), "error"),
                 plural(counts.get("warning", 0), "warning"),
+                self.window,
             ),
             output="\n".join(error_log.get("lines") or []) or None,
             metrics={"errors": counts.get("error", 0), "warnings": counts.get("warning", 0), "fatal": serious},
@@ -535,11 +568,13 @@ class Evaluation(object):
             count = journal.get("count", 0)
             add(
                 "journal_errors",
-                "The mdatp service logged no errors to the journal",
+                "The mdatp service has logged no errors to the journal recently",
                 "passed" if not count else "failed",
                 "low",
                 "stability",
-                "No error entries." if not count else "%s." % plural(count, "error entry", "error entries"),
+                "No error entries %s." % self.window
+                if not count
+                else "%s %s." % (plural(count, "error entry", "error entries"), self.window),
                 output="\n".join(journal.get("lines") or []) or None,
                 metrics={"entries": count},
             )
@@ -1329,22 +1364,34 @@ class Evaluation(object):
         free = system.get("free_mib") or {}
         sizes = system.get("defender_disk_mib") or {}
         install, data = sizes.get("/opt/microsoft/mdatp") or 0, sizes.get("/var/opt/microsoft/mdatp") or 0
-        need_opt, need_var = round(install * 1.2), round(data * 2)
         problems = []
+        if self.installed:
+            need_opt, need_var = round(install * 1.2), round(data * 2)
+            name = "There is room for the next update"
+            what_opt, what_var = "the next platform update", "a security intelligence update"
+            passed = "/opt %.0f MiB free (the install is %.0f MiB), /var %.0f MiB free (Defender's data is %.0f MiB)." % (
+                free.get("/opt") or 0,
+                install,
+                free.get("/var") or 0,
+                data,
+            )
+        else:
+            # 101.26101.0000 installs 432 MiB in /opt and keeps about 200 MiB in /var, with room to update.
+            need_opt, need_var = 600, 400
+            name = "There is room to install Defender"
+            what_opt, what_var = "the install", "Defender's data"
+            passed = "/opt %.0f MiB free and /var %.0f MiB free, enough to install it." % (free.get("/opt") or 0, free.get("/var") or 0)
         if free.get("/opt") is not None and free["/opt"] < need_opt:
-            problems.append("/opt has %.0f MiB free, the next platform update needs about %d" % (free["/opt"], need_opt))
+            problems.append("/opt has %.0f MiB free, %s needs about %d" % (free["/opt"], what_opt, need_opt))
         if free.get("/var") is not None and free["/var"] < need_var:
-            problems.append("/var has %.0f MiB free, a security intelligence update needs about %d" % (free["/var"], need_var))
+            problems.append("/var has %.0f MiB free, %s needs about %d" % (free["/var"], what_var, need_var))
         add(
             "disk_space_for_updates",
-            "There is room for the next update",
+            name,
             "passed" if not problems else "failed",
             "high",
             "system",
-            "/opt %.0f MiB free (the install is %.0f MiB), /var %.0f MiB free (Defender's data is %.0f MiB)."
-            % (free.get("/opt") or 0, install, free.get("/var") or 0, data)
-            if not problems
-            else "; ".join(problems) + ".",
+            passed if not problems else "; ".join(problems) + ".",
             metrics={
                 "free_opt_mib": free.get("/opt") or 0,
                 "free_var_mib": free.get("/var") or 0,
@@ -1389,7 +1436,7 @@ class Evaluation(object):
         if selinux.get("mode") in (None, "disabled"):
             for check_id, name in (
                 ("selinux_policy", "Defender's SELinux policy is loaded"),
-                ("selinux_denials", "SELinux denied Defender nothing during the checks"),
+                ("selinux_denials", "SELinux has denied Defender nothing recently"),
             ):
                 add(
                     check_id,
@@ -1426,11 +1473,13 @@ class Evaluation(object):
             count = (denials.get("count") or 0) + (denials_after_reboot.get("count") or 0)
             add(
                 "selinux_denials",
-                "SELinux denied Defender nothing during the checks",
+                "SELinux has denied Defender nothing recently",
                 "passed" if not count else "failed",
                 "high",
                 "system",
-                "No denials (SELinux %s)." % selinux.get("mode") if not count else "%s." % plural(count, "denial"),
+                "No denials %s (SELinux %s)." % (self.window, selinux.get("mode"))
+                if not count
+                else "%s %s." % (plural(count, "denial"), self.window),
                 output="\n".join((denials.get("lines") or []) + (denials_after_reboot.get("lines") or [])) or None,
                 metrics={"denials": count},
             )
