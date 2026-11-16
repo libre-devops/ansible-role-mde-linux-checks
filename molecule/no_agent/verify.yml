@@ -1,0 +1,75 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars:
+    __verify_out: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+    __verify_preflight: "{{ lookup('ansible.builtin.file', __verify_out ~ '/preflight-' ~ inventory_hostname ~ '.json') | from_json }}"
+    __verify_full: "{{ lookup('ansible.builtin.file', __verify_out ~ '/full-' ~ inventory_hostname ~ '.json') | from_json }}"
+    __verify_preflight_status: >-
+      {{ dict(__verify_preflight.checks | map(attribute='id') | zip(__verify_preflight.checks | map(attribute='status'))) }}
+    __verify_readiness:
+      - supported_platform
+      - kernel_supported
+      - systemd_present
+      - system_requirements
+      - disk_space_for_updates
+      - filesystems_supported
+      - time_synchronised
+      - mounts_allow_exec
+      - fanotify_supported
+      - ebpf_supported
+      - fanotify_conflicts
+      - iptables_present
+  tasks:
+    - name: Check both suites match the report's format
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - -c
+          - >-
+            import json, sys, jsonschema; schema = json.load(open(sys.argv[1]));
+            [jsonschema.validate(json.load(open(path)), schema) for path in sys.argv[2:]]
+          - "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/tests/unit/fixtures/test-results.schema.json"
+          - "{{ __verify_out }}/preflight-{{ inventory_hostname }}.json"
+          - "{{ __verify_out }}/full-{{ inventory_hostname }}.json"
+      delegate_to: localhost
+      changed_when: false
+
+    - name: Check preflight ran the readiness checks only, and the supported platform passed
+      ansible.builtin.assert:
+        that:
+          - __verify_preflight.checks | map(attribute='id') | sort == __verify_readiness | sort
+          - __verify_preflight.name == 'Microsoft Defender for Endpoint on Linux readiness'
+          - __verify_preflight_status.supported_platform == 'passed'
+          - __verify_preflight_status.kernel_supported == 'passed'
+          - __verify_preflight_status.systemd_present == 'passed'
+          - __verify_preflight_status.mounts_allow_exec == 'passed'
+          - __verify_preflight_status.disk_space_for_updates == 'passed'
+        fail_msg: "{{ __verify_preflight.checks | map(attribute='id') | zip(__verify_preflight.checks | map(attribute='detail')) | list | to_json }}"
+        quiet: true
+
+    - name: Check the full run failed agent_installed alone
+      ansible.builtin.assert:
+        that:
+          - __verify_full.checks | selectattr('id', 'equalto', 'agent_installed') | map(attribute='status') | first == 'failed'
+          - __verify_full.checks | rejectattr('id', 'in', ['agent_installed', 'iptables_present'])
+            | selectattr('status', 'in', ['failed', 'error']) | list | length == 0
+          - >-
+            __verify_full.checks | selectattr('id', 'in', ['service_running', 'eicar_detection', 'resource_usage'])
+            | map(attribute='detail') | unique | list == ['Not checked: mdatp is not installed.']
+          - __verify_full.checks | selectattr('id', 'equalto', 'service_survives_reboot') | map(attribute='status') | first == 'skipped'
+        fail_msg: "{{ __verify_full.checks | selectattr('status', 'in', ['failed', 'error']) | list | to_json }}"
+        quiet: true
+
+    - name: Check the host was not rebooted and no test file was left
+      ansible.builtin.stat:
+        path: /var/tmp/mde-linux-checks
+      register: __verify_work_dir
+      become: true
+
+    - name: Check the host was left as it was
+      ansible.builtin.assert:
+        that:
+          - not __verify_work_dir.stat.exists
+        quiet: true

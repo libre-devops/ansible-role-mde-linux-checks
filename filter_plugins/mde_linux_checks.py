@@ -84,6 +84,23 @@ def version_tuple(value):
     return tuple(int(part) for part in re.findall(r"\d+", str(value or ""))) or (0,)
 
 
+def version_supported(version, allowed):
+    """Whether a VERSION_ID is in a support list: "9" (any 9.x), "8.7+" (8.7 and later 8.x), "24.04" (that release)."""
+    have = version_tuple(version)
+    for item in allowed:
+        item = str(item)
+        want = version_tuple(item.rstrip("+"))
+        if item.endswith("+"):
+            if have[0] == want[0] and have[: len(want)] >= want:
+                return True
+        elif "." in item:
+            if have[: len(want)] == want:
+                return True
+        elif have[0] == want[0]:
+            return True
+    return False
+
+
 def get(mapping, *path):
     for key in path:
         if not isinstance(mapping, dict):
@@ -192,7 +209,9 @@ class Evaluation(object):
         # happened before the run, not only during it.
         hours = float(self.settings.get("history_hours", 24))
         self.window = "in the last %g h" % hours if hours > 0 else "since the checks started"
-        self.installed = bool(get(self.after, "package", "installed")) and bool(get(self.after, "mdatp", "present"))
+        self.installed = bool(get(self.after, "package", "installed")) and (
+            "mdatp" not in self.after or bool(get(self.after, "mdatp", "present"))
+        )
 
     def detail_field(self, section, field):
         return get(self.details, section, "fields", field)
@@ -231,6 +250,9 @@ class Evaluation(object):
     }
 
     def run(self):
+        self.readiness()
+        if self.settings.get("scope") == "preflight":
+            return self.suite.checks
         self.installation()
         self.stability()
         self.protection()
@@ -244,7 +266,9 @@ class Evaluation(object):
             # One root cause, not a cascade: every check that needs the agent says it was not
             # checked, and agent_installed carries the failure.
             for check in self.suite.checks:
-                if check["id"] in self.WITHOUT_AGENT or check["status"] == "skipped":
+                if check["id"] in self.WITHOUT_AGENT or check["category"] == "readiness":
+                    continue
+                if check["detail"] == "Skipped by mde_linux_checks_skip.":
                     continue
                 for key in ("metrics", "output", "remediation", "expected", "actual", "docs"):
                     check.pop(key, None)
@@ -1340,13 +1364,88 @@ class Evaluation(object):
 
     # --- The system ------------------------------------------------------------------------------
 
-    def system(self):
+    def readiness(self):
+        """Whether the host can take Defender at all: Microsoft's prerequisites, and what blocks an install.
+
+        None of these needs the agent, so they run first, on a host without it (a readiness check
+        before a rollout), and alone in the preflight scope.
+        """
         add = self.suite.add
         system = self.after.get("system") or {}
-        before = self.before.get("system") or {}
-        if "error" in system:
-            add("system_requirements", "The host meets Microsoft's minimum requirements", "error", "high", "system", system["error"])
+        if "error" in system or not system:
+            add(
+                "system_requirements",
+                "The host meets Microsoft's minimum requirements",
+                "error",
+                "high",
+                "readiness",
+                system.get("error") or "The system was not probed.",
+            )
             return
+
+        osr = system.get("os_release")
+        arch = system.get("architecture")
+        name = "Microsoft supports this distribution, version and architecture"
+        if osr is None:
+            add("supported_platform", name, "skipped", "high", "readiness", "This probe did not read /etc/os-release.")
+        elif not osr.get("id"):
+            add("supported_platform", name, "error", "high", "readiness", "Could not read /etc/os-release.")
+        else:
+            platforms = self.settings.get("supported_platforms") or {}
+            arch_key = {"x86_64": "x86_64", "amd64": "x86_64", "aarch64": "aarch64", "arm64": "aarch64"}.get(arch)
+            label = "%s on %s" % (osr.get("pretty_name") or "%s %s" % (osr.get("name") or osr["id"], osr.get("version_id")), arch)
+            allowed = (platforms.get(osr["id"]) or {}).get(arch_key) or []
+            if arch_key is None:
+                status, detail = "failed", "%s: Defender for Endpoint runs on x86_64 and aarch64 only." % label
+            elif osr["id"] not in platforms:
+                status, detail = "failed", "%s is not on Microsoft's list of supported distributions." % label
+            elif version_supported(osr.get("version_id"), allowed):
+                status, detail = "passed", "%s is supported." % label
+            else:
+                status = "failed"
+                detail = "%s is not supported%s." % (
+                    label,
+                    ": on %s Microsoft supports %s" % (arch_key, ", ".join(allowed)) if allowed else " on %s" % arch_key,
+                )
+            add(
+                "supported_platform",
+                name,
+                status,
+                "high",
+                "readiness",
+                detail,
+                remediation=None
+                if status == "passed"
+                else "Other distributions may run Defender as a custom OS, outside Microsoft's support: "
+                "test on a supported one before raising issues.",
+                docs=DOCS["prerequisites"],
+            )
+
+        kernel = system.get("kernel")
+        ok = version_tuple(kernel)[:4] >= (3, 10, 0, 327)
+        add(
+            "kernel_supported",
+            "The kernel is new enough",
+            "passed" if ok else "failed",
+            "critical",
+            "readiness",
+            "Kernel %s." % kernel if ok else "Kernel %s is older than Microsoft's minimum, 3.10.0-327." % kernel,
+            docs=None if ok else DOCS["prerequisites"],
+        )
+
+        if system.get("systemd") is None:
+            add("systemd_present", "systemd manages the host", "skipped", "critical", "readiness", "This probe did not check for systemd.")
+        else:
+            add(
+                "systemd_present",
+                "systemd manages the host",
+                "passed" if system["systemd"] else "failed",
+                "critical",
+                "readiness",
+                "systemd is PID 1." if system["systemd"] else "systemd is not running: Defender's service needs it.",
+                docs=None if system["systemd"] else DOCS["prerequisites"],
+            )
+
         cpus, memory = system.get("cpus") or 0, system.get("memory_total_mib") or 0
         ok = cpus >= 1 and memory >= 870
         add(
@@ -1354,7 +1453,7 @@ class Evaluation(object):
             "The host meets Microsoft's minimum requirements",
             "passed" if ok else "failed",
             "high",
-            "system",
+            "readiness",
             "%s, %.0f MiB of memory." % (plural(cpus, "CPU"), memory),
             expected="1 CPU and 1 GiB of memory (870 MiB after the kernel's share)",
             metrics={"cpus": cpus, "memory_total_mib": memory},
@@ -1381,6 +1480,17 @@ class Evaluation(object):
             name = "There is room to install Defender"
             what_opt, what_var = "the install", "Defender's data"
             passed = "/opt %.0f MiB free and /var %.0f MiB free, enough to install it." % (free.get("/opt") or 0, free.get("/var") or 0)
+        if not self.installed:
+            # Microsoft's minimum is 2 GB, across the file systems Defender installs to (/opt and /var,
+            # counted once when they are one file system).
+            mounts = system.get("mount_options") or {}
+            distinct = {}
+            for path in ("/opt", "/var"):
+                key = (mounts.get(path) or {}).get("mount") or path
+                if free.get(path) is not None:
+                    distinct[key] = free[path]
+            if distinct and sum(distinct.values()) < 2048:
+                problems.append("%.0f MiB free across /opt and /var, below Microsoft's 2 GB minimum" % sum(distinct.values()))
         if free.get("/opt") is not None and free["/opt"] < need_opt:
             problems.append("/opt has %.0f MiB free, %s needs about %d" % (free["/opt"], what_opt, need_opt))
         if free.get("/var") is not None and free["/var"] < need_var:
@@ -1390,7 +1500,7 @@ class Evaluation(object):
             name,
             "passed" if not problems else "failed",
             "high",
-            "system",
+            "readiness",
             passed if not problems else "; ".join(problems) + ".",
             metrics={
                 "free_opt_mib": free.get("/opt") or 0,
@@ -1410,7 +1520,7 @@ class Evaluation(object):
             "Real-time protection supports the host's file systems",
             "passed" if not unsupported else "failed",
             "medium",
-            "system",
+            "readiness",
             "%s." % listing("%s %s" % (p, fs) for p, fs in sorted(filesystems.items()) if fs)
             if not unsupported
             else "Not watched by real-time protection: %s." % listing(unsupported),
@@ -1419,19 +1529,138 @@ class Evaluation(object):
 
         synced = system.get("time_synchronised")
         if synced is None:
-            add("time_synchronised", "The clock is synchronised", "skipped", "medium", "system", "timedatectl is not available.")
+            add("time_synchronised", "The clock is synchronised", "skipped", "medium", "readiness", "timedatectl is not available.")
         else:
             add(
                 "time_synchronised",
                 "The clock is synchronised",
                 "passed" if synced else "failed",
                 "medium",
-                "system",
+                "readiness",
                 "NTP synchronised."
                 if synced
                 else "Not synchronised: certificate checks against Defender's cloud fail when the clock drifts.",
             )
 
+        mounts = system.get("mount_options")
+        name = "Defender's directories allow programs to run"
+        if mounts is None:
+            add("mounts_allow_exec", name, "skipped", "critical", "readiness", "This probe did not read the mount options.")
+        else:
+            blocked = [
+                "%s (mounted at %s)" % (path, m.get("mount"))
+                for path, m in sorted(mounts.items())
+                if m and "noexec" in (m.get("options") or [])
+            ]
+            add(
+                "mounts_allow_exec",
+                name,
+                "passed" if not blocked else "failed",
+                "critical",
+                "readiness",
+                "/opt and /var are mounted without noexec."
+                if not blocked
+                else "noexec on %s: the agent runs from /opt/microsoft/mdatp and "
+                "its antivirus engine updates into /var/opt/microsoft/mdatp." % listing(blocked),
+                remediation=None if not blocked else "Hardening baselines set noexec on /tmp and /var/tmp; keep it off /opt and /var.",
+            )
+
+        config = system.get("kernel_config")
+        name = "The kernel supports fanotify with permission events"
+        if config is None:
+            add(
+                "fanotify_supported",
+                name,
+                "skipped",
+                "high",
+                "readiness",
+                "The running kernel's configuration is not readable (/boot/config-%s or /proc/config.gz)." % kernel,
+            )
+        else:
+            missing = [opt for opt in ("CONFIG_FANOTIFY", "CONFIG_FANOTIFY_ACCESS_PERMISSIONS") if config.get(opt) != "y"]
+            add(
+                "fanotify_supported",
+                name,
+                "passed" if not missing else "failed",
+                "high",
+                "readiness",
+                "CONFIG_FANOTIFY and CONFIG_FANOTIFY_ACCESS_PERMISSIONS are on."
+                if not missing
+                else "%s not set: real-time protection cannot block files." % listing(missing),
+            )
+
+        btf = system.get("btf")
+        add(
+            "ebpf_supported",
+            "The kernel supports the eBPF event provider",
+            "passed" if btf else "failed",
+            "medium",
+            "readiness",
+            "BTF is available (/sys/kernel/btf/vmlinux)."
+            if btf
+            else "No BTF (/sys/kernel/btf/vmlinux): EDR would fall back to the netlink provider and see less.",
+            docs=DOCS["ebpf"],
+        )
+
+        users = system.get("fanotify_users")
+        name = "No other product uses fanotify in blocking mode"
+        if users is None:
+            add("fanotify_conflicts", name, "skipped", "high", "readiness", "This probe did not look for fanotify users.")
+        else:
+            others = [
+                u
+                for u in users
+                if not (str(u.get("exe", "")).startswith("/opt/microsoft/mdatp/") or str(u.get("comm", "")).startswith("wdavdaemon"))
+            ]
+            family = (osr or {}).get("id"), (osr or {}).get("id_like") or ""
+            el = family[0] in ("rhel", "centos", "fedora", "rocky", "almalinux", "ol") or "rhel" in family[1] or "fedora" in family[1]
+            blocking = [u for u in others if u.get("blocking") and not (el and u.get("comm") == "fapolicyd")]
+            supported = [u for u in others if u.get("blocking") and el and u.get("comm") == "fapolicyd"]
+            notes = []
+            if supported:
+                notes.append(
+                    "fapolicyd blocks with fanotify, which Microsoft supports alongside Defender on RHEL and Fedora "
+                    "while mdatp reports healthy"
+                )
+            if [u for u in others if not u.get("blocking")]:
+                notes.append("non-blocking fanotify users: %s" % listing(sorted(set(u["comm"] for u in others if not u.get("blocking")))))
+            add(
+                "fanotify_conflicts",
+                name,
+                "passed" if not blocking else "failed",
+                "high",
+                "readiness",
+                ("None." if not notes else "; ".join(notes)[:1].upper() + "; ".join(notes)[1:] + ".")
+                if not blocking
+                else "Blocking fanotify users: %s." % listing("%s (%s, pid %s)" % (u["comm"], u["exe"], u["pid"]) for u in blocking),
+                remediation=None
+                if not blocking
+                else "Microsoft warns another fanotify product in blocking mode can hang the system: remove it, or run Defender passive.",
+                docs=None if not blocking else DOCS["prerequisites"],
+            )
+
+        iptables = system.get("iptables")
+        if iptables is None:
+            add("iptables_present", "iptables is installed", "skipped", "low", "readiness", "This probe did not look for iptables.")
+        else:
+            add(
+                "iptables_present",
+                "iptables is installed",
+                "passed" if iptables else "failed",
+                "low",
+                "readiness",
+                "iptables is installed."
+                if iptables
+                else "iptables is missing. The mdatp package needs it, and device isolation uses it: "
+                "dnf or apt bring it from the host's repositories, but an install from package files must push it too.",
+            )
+
+    def system(self):
+        add = self.suite.add
+        system = self.after.get("system") or {}
+        before = self.before.get("system") or {}
+        if "error" in system:
+            return
         selinux = system.get("selinux") or {}
         if selinux.get("mode") in (None, "disabled"):
             for check_id, name in (
@@ -1832,15 +2061,19 @@ def properties(data, checks):
 def mde_linux_checks_suite(data):
     """The test results for one host, from the probes and actions the role gathered."""
     checks = Evaluation(data).run()
-    return {
+    suite = {
         "schema": SUITE_SCHEMA,
         "suite": "mde_linux_checks",
-        "name": "Microsoft Defender for Endpoint on Linux",
-        "started": data.get("started"),
-        "finished": data.get("finished"),
+        "name": "Microsoft Defender for Endpoint on Linux"
+        + (" readiness" if (data.get("settings") or {}).get("scope") == "preflight" else ""),
         "properties": properties(data, checks),
         "checks": checks,
     }
+    # The times are optional in the format, but a string when present.
+    for key in ("started", "finished"):
+        if data.get(key):
+            suite[key] = data[key]
+    return suite
 
 
 def mde_linux_checks_baseline(probe, host):

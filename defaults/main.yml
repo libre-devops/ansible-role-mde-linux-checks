@@ -5,6 +5,17 @@
 # scan unless those are turned off below.
 mde_linux_checks_profile: release
 
+# full runs every check, the readiness checks first. preflight runs only the readiness checks:
+# whether the host can take Defender at all (Microsoft's supported distributions, kernel, systemd,
+# CPU, memory and disk, noexec mounts, fanotify, eBPF, other fanotify products, iptables). They need
+# no agent and change nothing, so preflight is safe on any host, before an install or a rollout.
+mde_linux_checks_scope: full
+
+# The distributions and versions Microsoft supports, by /etc/os-release ID and architecture. The
+# role's list (vars/main.yml) is from Microsoft's prerequisites page; replace it when Microsoft adds
+# or drops one before the role catches up.
+mde_linux_checks_supported_platforms: "{{ __mde_linux_checks_microsoft_platforms }}"
+
 # Whether the host can reach Microsoft's cloud. false skips the security intelligence update,
 # the connectivity test and the definitions age, saying why, rather than failing them.
 mde_linux_checks_online: true

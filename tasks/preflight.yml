@@ -1,0 +1,54 @@
+---
+# Whether the host can take Defender for Endpoint: Microsoft's prerequisites and what blocks an
+# install, read in one probe that changes nothing. No test acts on the host and the agent does not
+# have to be installed.
+
+- name: Probe the host's readiness for Defender for Endpoint
+  mde_linux_checks_probe:
+    sections: [package, system]
+  register: __mde_linux_checks_after
+
+- name: Judge the host's readiness
+  ansible.builtin.set_fact:
+    mde_linux_checks_test_results: "{{ __mde_linux_checks_data | mde_linux_checks_suite }}"
+  vars:
+    __mde_linux_checks_data:
+      host: "{{ inventory_hostname }}"
+      now: "{{ __mde_linux_checks_after.probe.taken_at }}"
+      started: "{{ '%Y-%m-%dT%H:%M:%SZ' | ansible.builtin.strftime(__mde_linux_checks_after.probe.taken_at | float, utc=true) }}"
+      finished: >-
+        {{ '%Y-%m-%dT%H:%M:%SZ' | ansible.builtin.strftime((__mde_linux_checks_after.probe.finished_at
+           | default(__mde_linux_checks_after.probe.taken_at)) | float, utc=true) }}
+      probes:
+        after: "{{ __mde_linux_checks_after.probe }}"
+      actions: {}
+      fleet: {}
+      settings:
+        scope: preflight
+        profile: "{{ mde_linux_checks_profile }}"
+        online: "{{ mde_linux_checks_online | bool }}"
+        skip: "{{ mde_linux_checks_skip }}"
+        supported_platforms: "{{ mde_linux_checks_supported_platforms }}"
+
+- name: Create the evidence directory for this host
+  ansible.builtin.file:
+    path: "{{ mde_linux_checks_evidence_dir }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0750"
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  when: mde_linux_checks_evidence_dir | length > 0
+
+- name: Keep what the probe read
+  ansible.builtin.copy:
+    dest: "{{ mde_linux_checks_evidence_dir }}/{{ inventory_hostname }}/preflight-probe.json"
+    content: "{{ __mde_linux_checks_after.probe | to_nice_json }}\n"
+    mode: "0640"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  when: mde_linux_checks_evidence_dir | length > 0

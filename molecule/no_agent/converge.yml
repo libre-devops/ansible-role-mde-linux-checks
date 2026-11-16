@@ -1,0 +1,36 @@
+---
+- name: Preflight, then a full run, on hosts without the agent
+  hosts: all
+  become: true
+  vars:
+    __molecule_out: "{{ lookup('ansible.builtin.env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+  tasks:
+    - name: Run the preflight checks
+      ansible.builtin.include_role:
+        name: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_scope: preflight
+        mde_linux_checks_evidence_dir: "{{ __molecule_out }}/evidence"
+
+    - name: Keep the preflight results for verify
+      ansible.builtin.copy:
+        dest: "{{ __molecule_out }}/preflight-{{ inventory_hostname }}.json"
+        content: "{{ mde_linux_checks_test_results | to_nice_json }}\n"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+    - name: Run the full checks, with nothing to check
+      ansible.builtin.include_role:
+        name: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_scope: full
+        mde_linux_checks_sample_seconds: 1
+
+    - name: Keep the full results for verify
+      ansible.builtin.copy:
+        dest: "{{ __molecule_out }}/full-{{ inventory_hostname }}.json"
+        content: "{{ mde_linux_checks_test_results | to_nice_json }}\n"
+        mode: "0644"
+      delegate_to: localhost
+      become: false

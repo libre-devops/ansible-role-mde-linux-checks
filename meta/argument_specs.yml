@@ -18,6 +18,18 @@ argument_specs:
         type: str
         choices: [release, health]
         default: release
+      mde_linux_checks_scope:
+        description:
+          - full runs every check, the readiness checks first. preflight runs only the readiness checks, which need no agent and
+            change nothing, to find out whether a host can take Defender.
+        type: str
+        choices: [full, preflight]
+        default: full
+      mde_linux_checks_supported_platforms:
+        description:
+          - The distributions Microsoft supports, by /etc/os-release ID, then architecture (x86_64, aarch64), then versions ("9" any
+            9.x, "8.7+" 8.7 and later 8.x, "24.04" that release). Defaults to the list from Microsoft's prerequisites page.
+        type: dict
       mde_linux_checks_online:
         description: Whether the host can reach Microsoft's cloud.
         type: bool

@@ -101,6 +101,9 @@ jobs:
           - { scenario: default, platform: debian12 }
           - { scenario: default, platform: ubuntu2404 }
           - { scenario: failures, platform: rhel9 }
+          - { scenario: no_agent, platform: rhel9 }
+          - { scenario: no_agent, platform: debian12 }
+          - { scenario: no_agent, platform: ubuntu2404 }
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

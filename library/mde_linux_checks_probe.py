@@ -54,6 +54,7 @@ probe:
 """
 
 import calendar
+import gzip
 import json
 import os
 import re
@@ -381,6 +382,14 @@ class Probe(object):
         result = {}
         result["boot_id"] = self.read("/proc/sys/kernel/random/boot_id")
         result["kernel"] = os.uname()[2]
+        result["architecture"] = os.uname()[4]
+        result["os_release"] = self.os_release()
+        # systemd as PID 1, which Defender's service needs.
+        result["systemd"] = os.path.isdir("/run/systemd/system")
+        result["kernel_config"] = self.kernel_config(result["kernel"])
+        result["mount_options"] = self.mount_options(("/opt", "/var"))
+        result["fanotify_users"] = self.fanotify_users()
+        result["iptables"] = bool(self.which("iptables") or self.which("iptables-nft"))
         uptime = self.read("/proc/uptime")
         result["uptime_seconds"] = float(uptime.split()[0]) if uptime else None
         result["fips_enabled"] = self.read("/proc/sys/crypto/fips_enabled") == "1"
@@ -431,6 +440,87 @@ class Probe(object):
                 return handle.read().strip()
         except (IOError, OSError):
             return None
+
+    def os_release(self):
+        fields = {}
+        for line in (self.read("/etc/os-release") or self.read("/usr/lib/os-release") or "").splitlines():
+            key, _, value = line.partition("=")
+            if key in ("ID", "VERSION_ID", "NAME", "PRETTY_NAME", "ID_LIKE"):
+                fields[key.lower()] = value.strip().strip('"')
+        return fields
+
+    def kernel_config(self, release):
+        """The kernel options real-time protection needs, from the running kernel's config."""
+        text = self.read("/boot/config-%s" % release)
+        if text is None and os.path.exists("/proc/config.gz"):
+            try:
+                with gzip.open("/proc/config.gz", "rt") as handle:
+                    text = handle.read()
+            except (IOError, OSError):
+                text = None
+        if text is None:
+            return None
+        wanted = ("CONFIG_FANOTIFY", "CONFIG_FANOTIFY_ACCESS_PERMISSIONS", "CONFIG_DEBUG_INFO_BTF")
+        found = dict((name, None) for name in wanted)
+        for line in text.splitlines():
+            name, _, value = line.partition("=")
+            if name in found:
+                found[name] = value.strip()
+        return found
+
+    def mount_options(self, paths):
+        mounts = []
+        for line in (self.read("/proc/mounts") or "").splitlines():
+            parts = line.split()
+            if len(parts) >= 4:
+                mounts.append((parts[1].replace("\\040", " "), parts[3].split(",")))
+        result = {}
+        for path in paths:
+            best = max(
+                (m for m in mounts if path == m[0] or path.startswith(m[0].rstrip("/") + "/")), key=lambda m: len(m[0]), default=None
+            )
+            result[path] = {"mount": best[0], "options": best[1]} if best else None
+        return result
+
+    @staticmethod
+    def fanotify_users():
+        """Processes holding fanotify descriptors, and whether they block (permission events).
+
+        Microsoft warns that other fanotify-based products in blocking mode can hang the system.
+        mdatp reports them once installed (conflicting_applications); this finds them before.
+        """
+        users = []
+        for entry in os.listdir("/proc"):
+            if not entry.isdigit():
+                continue
+            fd_dir = "/proc/%s/fd" % entry
+            try:
+                descriptors = os.listdir(fd_dir)
+            except (IOError, OSError):
+                continue
+            blocking, holds = False, False
+            for fd in descriptors:
+                try:
+                    if os.readlink(os.path.join(fd_dir, fd)) != "anon_inode:[fanotify]":
+                        continue
+                    holds = True
+                    with open("/proc/%s/fdinfo/%s" % (entry, fd)) as handle:
+                        for line in handle:
+                            match = re.search(r"\bmask:([0-9a-fA-F]+)", line)
+                            # FAN_OPEN_PERM, FAN_ACCESS_PERM and FAN_OPEN_EXEC_PERM: the blocking events.
+                            if line.startswith("fanotify ") and match and int(match.group(1), 16) & 0x70000:
+                                blocking = True
+                except (IOError, OSError, ValueError):
+                    continue
+            if holds:
+                try:
+                    with open("/proc/%s/comm" % entry) as handle:
+                        comm = handle.read().strip()
+                    exe = os.readlink("/proc/%s/exe" % entry)
+                except (IOError, OSError):
+                    comm, exe = "?", "?"
+                users.append({"pid": int(entry), "comm": comm, "exe": exe, "blocking": blocking})
+        return users
 
     def filesystems(self):
         mounts = []

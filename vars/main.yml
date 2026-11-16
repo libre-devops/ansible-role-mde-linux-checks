@@ -1,3 +1,49 @@
 ---
-# Nothing internal is fixed here yet: the checks' tables live in filter_plugins/mde_linux_checks.py.
 __mde_linux_checks_schema: libre_devops.test_results/v1
+
+# The distributions Microsoft supports Defender for Endpoint on, by /etc/os-release ID and
+# architecture, from https://learn.microsoft.com/en-us/defender-endpoint/mde-linux-prerequisites
+# (the page dated 14 September 2026). A version is "9" (any 9.x), "8.7+" (8.7 and later 8.x) or
+# "24.04" (that release only). Microsoft changes the list with new releases: override the whole
+# thing with mde_linux_checks_supported_platforms.
+__mde_linux_checks_microsoft_platforms:
+  rhel:
+    x86_64: ["7.2+", "8", "9", "10"]
+    aarch64: ["8", "9", "10"]
+  # CentOS 7.2 and later and 8, and CentOS Stream 8, 9 and 10, which share the ID.
+  centos:
+    x86_64: ["7.2+", "8", "9", "10"]
+    aarch64: ["8", "9", "10"]
+  # LTS releases only.
+  ubuntu:
+    x86_64: ["16.04", "18.04", "20.04", "22.04", "24.04", "26.04"]
+    aarch64: ["20.04", "22.04", "24.04", "26.04"]
+  debian:
+    x86_64: ["9", "10", "11", "12", "13"]
+    aarch64: ["11", "12", "13"]
+  # SLES on ARM64: 15 SP5 and SP6, and 16.
+  sles:
+    x86_64: ["12", "15", "16"]
+    aarch64: ["15.5", "15.6", "16"]
+  opensuse-leap:
+    x86_64: ["15.6", "16"]
+    aarch64: ["15.6", "16"]
+  ol:
+    x86_64: ["7.2+", "8", "9", "10"]
+    aarch64: ["8", "9", "10"]
+  # Amazon Linux 2 on ARM64 support ended on 31 October 2026.
+  amzn:
+    x86_64: ["2", "2023"]
+    aarch64: ["2023"]
+  fedora:
+    x86_64: ["33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"]
+    aarch64: ["40", "41", "42", "43", "44"]
+  rocky:
+    x86_64: ["8.7+", "9.2+", "10"]
+    aarch64: ["8.7+", "9.2+", "10"]
+  almalinux:
+    x86_64: ["8.4+", "9.2+", "10"]
+    aarch64: ["8.4+", "9.2+", "10"]
+  mariner:
+    x86_64: ["2"]
+    aarch64: ["2"]

@@ -1,0 +1,12 @@
+---
+# Hosts without the agent: preflight must report the readiness checks only, and a full run must
+# fail agent_installed alone, skip every check that needs the agent, and act on nothing (no scan,
+# no EICAR file, no reboot). Nothing is installed, so it is quick.
+scenario:
+  test_sequence:
+    - destroy
+    - syntax
+    - create
+    - converge
+    - verify
+    - destroy

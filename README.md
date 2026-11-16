@@ -9,7 +9,7 @@
 
 # Ansible Role: Defender for Endpoint on Linux checks
 
-Tests Microsoft Defender for Endpoint on Linux: as a release test before a version goes to an estate, and as a health check of devices already running it. It covers installation, stability, protection, configuration, onboarding, the system, resource use and a reboot, and compares the host with how it was before an upgrade. Each of its 50-odd checks exists because something real goes wrong: many are named after the agent release that broke it.
+Tests Microsoft Defender for Endpoint on Linux: as a release test before a version goes to an estate, and as a health check of devices already running it. It covers readiness (can the host take Defender at all), installation, stability, protection, configuration, onboarding, the system, resource use and a reboot, and compares the host with how it was before an upgrade. Each of its 63 checks exists because something real goes wrong: many are named after the agent release that broke it.
 
 It judges and records; it does not deploy. Install and configure the agent with [libre_devops.mde_linux](https://github.com/libre-devops/ansible-role-mde-linux), run these checks, then report on them with [libre_devops.test_results_report](https://github.com/libre-devops/ansible-role-test-results-report). The report is readable by people and parsable by pipelines, and judged against your thresholds.
 
@@ -28,6 +28,7 @@ It judges and records; it does not deploy. Install and configure the agent with 
 - [Quick start](#quick-start)
 - [Profiles: release and health](#profiles-release-and-health)
 - [Health checks of devices in use](#health-checks-of-devices-in-use)
+- [Preflight: before an install or a rollout](#preflight-before-an-install-or-a-rollout)
 - [The checks](#the-checks)
 - [Online, offline and onboarded hosts](#online-offline-and-onboarded-hosts)
 - [Testing an upgrade](#testing-an-upgrade)
@@ -42,8 +43,8 @@ It judges and records; it does not deploy. Install and configure the agent with 
 
 ## What it does
 
-1. **Probes the host before anything happens**, and waits for the antivirus engine to load, so the end can be compared with the start.
-2. **Acts on the host**, as the profile allows:
+1. **Probes the host before anything happens**, and waits for the antivirus engine to load, so the end can be compared with the start. The readiness checks, which need no agent, come from this too (and are all that runs in the preflight scope).
+2. **Acts on the host**, as the profile allows (nothing acts on a host without the agent):
    - updates security intelligence;
    - tests the connection to Defender's cloud;
    - writes the EICAR test file and times the detection;
@@ -145,11 +146,48 @@ The log-based checks look back `mde_linux_checks_history_hours` (24 by default),
 - `time_synchronised`;
 - `selinux_mode_unchanged`.
 
-To use the role purely as a readiness check before installing, add `agent_installed` to `mde_linux_checks_skip`.
+## Preflight: before an install or a rollout
+
+`mde_linux_checks_scope: preflight` runs only the readiness checks: one probe, nothing acts on the host, and the agent does not have to be there. Run it across an estate before a rollout, to find the servers that cannot take Defender. Or run it at the start of a release pipeline, so an unsuitable test host stops the run before anything is installed:
+
+```yaml
+- name: Can these hosts take Defender for Endpoint?
+  hosts: linux_servers
+  become: true
+  roles:
+    - role: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_scope: preflight
+    - role: libre_devops.test_results_report
+      vars:
+        test_results_report_title: Defender for Endpoint readiness
+        test_results_report_max_failed_hosts: 1000   # report every host, fail none of the run
+```
+
+Microsoft's support list changes with its releases. The role carries it as data (`vars/main.yml`, from the prerequisites page); replace it with `mde_linux_checks_supported_platforms` when Microsoft adds or drops a distribution before the role catches up.
 
 ## The checks
 
 Every check has a stable id. Waivers, limits, expected checks and comparisons in the report select checks by it. A check that does not apply is **skipped with a reason**; one that could not get an answer is an **error**, never a pass. `mde_linux_checks_skip` turns any check off; it is reported as skipped.
+
+### Readiness: can the host take Defender?
+
+These need no agent, run first, and are the only checks in the preflight scope. On a host without the agent they still run, as a readiness check.
+
+| Id | Severity | Proves | Why it is here |
+|---|---|---|---|
+| `supported_platform` | High | The distribution, version and architecture are on Microsoft's support list (`/etc/os-release` against `mde_linux_checks_supported_platforms`). | The list has traps: Ubuntu LTS only, Rocky 8.7+ and 9.2+, Alma 8.4+ and 9.2+, SLES on ARM64 only 15 SP5, SP6 and 16, Amazon Linux 2 on ARM64 ended 31 October 2026. Others may run as a custom OS, outside Microsoft's support. |
+| `kernel_supported` | Critical | The kernel is 3.10.0-327 or later. | Microsoft's minimum for every distribution. |
+| `systemd_present` | Critical | systemd is PID 1. | Defender's service needs it. |
+| `system_requirements` | High | At least 1 CPU and 1 GiB of memory (870 MiB after the kernel's share). | Microsoft's minimum. |
+| `disk_space_for_updates` | High | With the agent: `/opt` has room for the next platform update (1.2 times the install) and `/var` for a security intelligence update (twice Defender's data). Without it: Microsoft's 2 GB minimum across `/opt` and `/var` (counted once when they share a file system), with at least 600 MiB in `/opt` and 400 MiB in `/var`. | An update unpacks beside the old version first. On the Azure RHEL 9 image the 432 MiB install left 1.48 GiB free on `/opt`. |
+| `mounts_allow_exec` | Critical | `/opt` and `/var` are not mounted `noexec`. | The agent runs from `/opt/microsoft/mdatp`, and its engine updates into `/var/opt/microsoft/mdatp`. Hardening baselines set `noexec` on `/tmp` and `/var/tmp`; set on `/opt` or `/var` it stops the agent. |
+| `filesystems_supported` | Medium | `/`, `/opt`, `/var`, `/tmp` and `/home` are on file systems real-time protection watches. | NFS or CIFS home directories are not protected in real time. |
+| `fanotify_supported` | High | The running kernel has `CONFIG_FANOTIFY` and `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`. | Real-time protection blocks files through fanotify permission events. Skipped when the kernel's config is not readable. |
+| `ebpf_supported` | Medium | The kernel has BTF (`/sys/kernel/btf/vmlinux`). | Without it EDR falls back to the netlink provider and sees less. |
+| `fanotify_conflicts` | High | No other process uses fanotify in blocking mode, from `/proc/<pid>/fdinfo`. fapolicyd passes on RHEL and Fedora, where Microsoft supports it. | Microsoft warns another blocking fanotify product can hang the system. mdatp reports this only once installed (`conflicting_applications`). |
+| `iptables_present` | Low | `iptables` is installed. | The package needs it and device isolation uses it. dnf and apt bring it, but an install from package files must push it too. |
+| `time_synchronised` | Medium | The clock is NTP-synchronised. | Certificate checks against the cloud fail when it drifts. |
 
 ### Installation
 
@@ -218,10 +256,6 @@ Every check has a stable id. Waivers, limits, expected checks and comparisons in
 
 | Id | Severity | Proves | Why it is here |
 |---|---|---|---|
-| `system_requirements` | High | At least 1 CPU and 1 GiB of memory (870 MiB after the kernel's share). | Microsoft's minimum. |
-| `disk_space_for_updates` | High | `/opt` has room for the next platform update (1.2 times the install) and `/var` for a security intelligence update (twice Defender's data). Without the agent: 600 MiB in `/opt` and 400 MiB in `/var` to install it. | An update unpacks beside the old version first. On the Azure RHEL 9 image the 432 MiB install left 1.48 GiB free on `/opt`. |
-| `filesystems_supported` | Medium | `/`, `/opt`, `/var`, `/tmp` and `/home` are on file systems real-time protection watches. | NFS or CIFS home directories are not protected in real time. |
-| `time_synchronised` | Medium | The clock is NTP-synchronised. | Certificate checks against the cloud fail when it drifts. |
 | `selinux_policy` | Medium | A Defender SELinux module is loaded. | 101.26032.0000 fixed upgrades removing its SELinux modules. Skipped without SELinux. |
 | `selinux_denials` | High | SELinux denied Defender's processes nothing in the look-back window. | Catches install-time denials too. |
 | `selinux_mode_unchanged` | High | The SELinux mode did not change during the checks. | |
@@ -380,6 +414,8 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 | Variable | Default | Description |
 |---|---|---|
 | `mde_linux_checks_profile` | `release` | `release` adds the EICAR test and a reboot; `health` leaves them out. See [Profiles](#profiles-release-and-health). |
+| `mde_linux_checks_scope` | `full` | `full` runs every check, readiness first; `preflight` runs only the readiness checks. See [Preflight](#preflight-before-an-install-or-a-rollout). |
+| `mde_linux_checks_supported_platforms` | Microsoft's list | The supported distributions, by `/etc/os-release` ID, architecture and versions (`"9"` any 9.x, `"8.7+"` 8.7 and later 8.x, `"24.04"` that release). |
 | `mde_linux_checks_online` | `true` | Whether the host can reach Microsoft's cloud. |
 | `mde_linux_checks_onboarded` | `auto` | Whether the device should be onboarded: `auto`, `true` or `false`. |
 | `mde_linux_checks_expected_version` | `""` | The version that should be installed. |
@@ -449,7 +485,7 @@ You need [uv](https://docs.astral.sh/uv/), [just](https://github.com/casey/just)
 | `just deps` | Installs the pinned Python tools (`uv.lock`) and the test collections into `.ansible/`. |
 | `just lint` | `yamllint`, `ansible-lint` on the production profile, `ruff` and `zizmor`. |
 | `just unit` | The unit tests: every check, the probe's parsers, and the results against the report's format. |
-| `just test [scenario] [platform]` | A Molecule scenario: `default` (the real host's output) or `failures` (broken output). `just test default rhel9`. |
+| `just test [scenario] [platform]` | A Molecule scenario: `default` (the real host's output), `failures` (broken output) or `no_agent` (preflight, and a full run with no agent). `just test default rhel9`. |
 | `just converge <scenario> <platform>` | Runs a scenario and leaves the container, pass or fail. `just login` opens a shell in it. |
 | `just live <inventory> [args]` | Runs [`examples/playbook.yml`](./examples/playbook.yml) against real hosts. |
 

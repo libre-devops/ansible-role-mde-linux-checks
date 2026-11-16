@@ -1,0 +1,121 @@
+---
+# The full checks, in four stages:
+#   1. Probe the host before anything happens (and wait for the engine), so the end can be
+#      compared with the start: restarts, crashes, an unexpected reboot.
+#   2. Act: the security intelligence update, the connectivity test, the EICAR test and a quick
+#      scan, as the profile and settings allow. Nothing here fails the play.
+#   3. Probe again, measuring CPU, then reboot and probe once more.
+#   4. Judge it all on the control node (filter_plugins/mde_linux_checks.py) and leave the
+#      results in mde_linux_checks_test_results for libre_devops.test_results_report.
+# Only the probes read the host; no check fails the play, so every result reaches the report.
+
+- name: Probe the host before the checks, waiting for the antivirus engine
+  mde_linux_checks_probe:
+    sections: [mdatp, service, system]
+    wait_for_engine: "{{ mde_linux_checks_engine_timeout }}"
+  register: __mde_linux_checks_before
+
+- name: Note when the checks started and how the antivirus runs
+  ansible.builtin.set_fact:
+    __mde_linux_checks_started: "{{ __mde_linux_checks_before.probe.taken_at }}"
+    __mde_linux_checks_level: "{{ __mde_linux_checks_before.probe | mde_linux_checks_enforcement_level }}"
+    __mde_linux_checks_actions: {}
+    __mde_linux_checks_acting: "{{ not ansible_check_mode and __mde_linux_checks_before.probe.mdatp.present | default(false) }}"
+
+- name: Act on the host
+  ansible.builtin.include_tasks: actions.yml
+
+- name: Probe the host after the checks, sampling Defender's CPU use
+  mde_linux_checks_probe:
+    since: "{{ __mde_linux_checks_started | float - mde_linux_checks_history_hours | float * 3600 }}"
+    sample_seconds: "{{ mde_linux_checks_sample_seconds }}"
+  register: __mde_linux_checks_after
+
+- name: Reboot and probe again
+  ansible.builtin.include_tasks: reboot.yml
+
+- name: Read the snapshot to compare with
+  ansible.builtin.set_fact:
+    __mde_linux_checks_baseline: >-
+      {{ (lookup('ansible.builtin.file', mde_linux_checks_compare_to, errors='ignore') | default('', true) | from_json)
+         if (lookup('ansible.builtin.file', mde_linux_checks_compare_to, errors='ignore') | default('', true)) | length > 0
+         else {'schema': 'missing', 'path': mde_linux_checks_compare_to} }}
+  when: mde_linux_checks_compare_to | length > 0
+
+- name: Note this host's identity, to compare with the other hosts
+  ansible.builtin.set_fact:
+    __mde_linux_checks_identity:
+      machine_guid: "{{ __mde_linux_checks_after.probe.mdatp.health.machine_guid | default(none) }}"
+      edr_machine_id: "{{ __mde_linux_checks_after.probe.mdatp.health.edr_machine_id | default(none) }}"
+
+- name: Judge the results
+  ansible.builtin.set_fact:
+    mde_linux_checks_test_results: "{{ __mde_linux_checks_data | mde_linux_checks_suite }}"
+  vars:
+    __mde_linux_checks_data:
+      host: "{{ inventory_hostname }}"
+      now: "{{ __mde_linux_checks_after.probe.taken_at }}"
+      started: "{{ '%Y-%m-%dT%H:%M:%SZ' | ansible.builtin.strftime(__mde_linux_checks_started | float, utc=true) }}"
+      finished: >-
+        {{ '%Y-%m-%dT%H:%M:%SZ' | ansible.builtin.strftime((__mde_linux_checks_rebooted.probe.taken_at
+           if __mde_linux_checks_rebooted.probe is defined else __mde_linux_checks_after.probe.taken_at) | float, utc=true) }}
+      probes:
+        before: "{{ __mde_linux_checks_before.probe }}"
+        after: "{{ __mde_linux_checks_after.probe }}"
+        rebooted: "{{ __mde_linux_checks_rebooted.probe | default(none) }}"
+      actions: >-
+        {{ __mde_linux_checks_actions | combine({
+             'settle': __mde_linux_checks_before.probe.mdatp.engine_wait | default({}),
+             'settle_after_reboot': __mde_linux_checks_rebooted.probe.mdatp.engine_wait | default({})
+                                    if __mde_linux_checks_rebooted.probe is defined else {}}) }}
+      baseline: "{{ __mde_linux_checks_baseline | default(none) }}"
+      fleet: >-
+        {{ dict(ansible_play_hosts | zip(ansible_play_hosts | map('extract', hostvars, '__mde_linux_checks_identity'))) }}
+      settings:
+        profile: "{{ mde_linux_checks_profile }}"
+        online: "{{ mde_linux_checks_online | bool }}"
+        onboarded: "{{ mde_linux_checks_onboarded | string }}"
+        expected_version: "{{ mde_linux_checks_expected_version }}"
+        expected_org_id: "{{ mde_linux_checks_expected_org_id }}"
+        expected_enforcement_level: "{{ mde_linux_checks_expected_enforcement_level }}"
+        expected_health: "{{ mde_linux_checks_expected_health }}"
+        skip: "{{ mde_linux_checks_skip }}"
+        min_days_to_expiry: "{{ mde_linux_checks_min_days_to_expiry }}"
+        max_definitions_age_hours: "{{ mde_linux_checks_max_definitions_age_hours }}"
+        eicar_timeout: "{{ mde_linux_checks_eicar_timeout }}"
+        definitions_timeout: "{{ mde_linux_checks_definitions_timeout }}"
+        history_hours: "{{ mde_linux_checks_history_hours }}"
+        preserved_fields: "{{ mde_linux_checks_preserved_fields }}"
+        supported_platforms: "{{ mde_linux_checks_supported_platforms }}"
+        scope: full
+
+- name: Create the snapshot's directory on the control node
+  ansible.builtin.file:
+    path: "{{ mde_linux_checks_snapshot_to | dirname }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  when: mde_linux_checks_snapshot_to | length > 0
+
+- name: Save a snapshot to compare with after an upgrade
+  ansible.builtin.copy:
+    dest: "{{ mde_linux_checks_snapshot_to }}"
+    content: "{{ __mde_linux_checks_after.probe | mde_linux_checks_baseline(inventory_hostname) | to_nice_json }}\n"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  when: mde_linux_checks_snapshot_to | length > 0
+
+- name: Keep the evidence
+  ansible.builtin.include_tasks: evidence.yml
+  when: mde_linux_checks_evidence_dir | length > 0
+
+- name: Remove the checks' working directory from the host
+  ansible.builtin.file:
+    path: "{{ mde_linux_checks_work_dir }}"
+    state: absent

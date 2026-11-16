@@ -15,6 +15,7 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -33,6 +34,7 @@ probe_module = load("mde_linux_checks_probe", ROOT / "library" / "mde_linux_chec
 # A copy of libre_devops.test_results_report's published contract for checks roles.
 SUITE_SCHEMA = json.loads((FIXTURES / "test-results.schema.json").read_text())
 REAL = json.loads((FIXTURES / "rhel9-online-unlicensed.json").read_text())
+PLATFORMS = yaml.safe_load((ROOT / "vars" / "main.yml").read_text())["__mde_linux_checks_microsoft_platforms"]
 NOW = REAL["taken_at"]
 
 
@@ -50,6 +52,7 @@ def settings(**extra):
         "max_definitions_age_hours": 48,
         "eicar_timeout": 60,
         "preserved_fields": ["antivirus_enforcement_level", "real_time_protection_enabled", "release_ring"],
+        "supported_platforms": PLATFORMS,
     }
     base.update(extra)
     return base
@@ -199,6 +202,130 @@ def test_mdatp_dates():
     assert checks.parse_mdatp_date("next spring") is None
 
 
+# --- Readiness ------------------------------------------------------------------------------------
+
+READINESS = {
+    "supported_platform",
+    "kernel_supported",
+    "systemd_present",
+    "system_requirements",
+    "disk_space_for_updates",
+    "filesystems_supported",
+    "time_synchronised",
+    "mounts_allow_exec",
+    "fanotify_supported",
+    "ebpf_supported",
+    "fanotify_conflicts",
+    "iptables_present",
+}
+
+
+def system_changed(**fields):
+    probe = copy.deepcopy(REAL)
+    probe["system"].update(fields)
+    return probe
+
+
+def test_readiness_comes_first_and_passes_on_the_real_host():
+    result = suite()["checks"]
+    assert [c["id"] for c in result[: len(READINESS)]] == [c["id"] for c in result if c["category"] == "readiness"]
+    assert {c["id"] for c in result if c["category"] == "readiness"} == READINESS
+    assert all(c["status"] == "passed" for c in result if c["category"] == "readiness")
+
+
+@pytest.mark.parametrize(
+    ("version", "allowed", "supported"),
+    [
+        ("9.6", ["8", "9", "10"], True),
+        ("7.1", ["7.2+", "8"], False),
+        ("7.9", ["7.2+", "8"], True),
+        ("8.6", ["8.7+", "9.2+"], False),
+        ("9.2", ["8.7+", "9.2+"], True),
+        ("24.04", ["22.04", "24.04"], True),
+        ("25.10", ["24.04", "26.04"], False),
+        ("15.6", ["15.5", "15.6", "16"], True),
+        ("15.4", ["15.5", "15.6", "16"], False),
+        ("2023", ["2", "2023"], True),
+    ],
+)
+def test_support_list_versions(version, allowed, supported):
+    assert checks.version_supported(version, allowed) is supported
+
+
+@pytest.mark.parametrize(
+    ("os_release", "arch", "fragment"),
+    [
+        ({"id": "ubuntu", "version_id": "25.10", "pretty_name": "Ubuntu 25.10"}, "x86_64", "on x86_64 Microsoft supports 16.04"),
+        ({"id": "rocky", "version_id": "8.6", "pretty_name": "Rocky Linux 8.6"}, "x86_64", "8.7+"),
+        ({"id": "amzn", "version_id": "2", "pretty_name": "Amazon Linux 2"}, "aarch64", "on aarch64 Microsoft supports 2023"),
+        ({"id": "gentoo", "version_id": "2.17", "pretty_name": "Gentoo"}, "x86_64", "not on Microsoft's list"),
+        ({"id": "rhel", "version_id": "9.8", "pretty_name": "RHEL 9.8"}, "ppc64le", "x86_64 and aarch64 only"),
+    ],
+)
+def test_unsupported_platforms_fail(os_release, arch, fragment):
+    check = by_id(suite(after=system_changed(os_release=os_release, architecture=arch)))["supported_platform"]
+    assert check["status"] == "failed" and fragment in check["detail"]
+
+
+def test_an_old_kernel_and_no_systemd_fail():
+    result = by_id(suite(after=system_changed(kernel="3.10.0-123.el7.x86_64", systemd=False)))
+    assert result["kernel_supported"]["status"] == result["systemd_present"]["status"] == "failed"
+
+
+def test_noexec_on_opt_fails():
+    mounts = copy.deepcopy(REAL["system"]["mount_options"])
+    mounts["/opt"] = {"mount": "/opt", "options": ["rw", "nosuid", "nodev", "noexec"]}
+    check = by_id(suite(after=system_changed(mount_options=mounts)))["mounts_allow_exec"]
+    assert check["status"] == "failed" and "/opt (mounted at /opt)" in check["detail"]
+
+
+def test_kernel_without_fanotify_permissions_or_btf_fails():
+    result = by_id(suite(after=system_changed(kernel_config={"CONFIG_FANOTIFY": "y"}, btf=False)))
+    assert result["fanotify_supported"]["detail"] == "CONFIG_FANOTIFY_ACCESS_PERMISSIONS not set: real-time protection cannot block files."
+    assert result["ebpf_supported"]["status"] == "failed" and result["ebpf_supported"]["severity"] == "medium"
+    unreadable = by_id(suite(after=system_changed(kernel_config=None)))["fanotify_supported"]
+    assert unreadable["status"] == "skipped"
+
+
+def test_other_blocking_fanotify_users_fail_but_fapolicyd_on_rhel_does_not():
+    users = REAL["system"]["fanotify_users"] + [{"pid": 900, "comm": "othersecd", "exe": "/opt/othersec/othersecd", "blocking": True}]
+    check = by_id(suite(after=system_changed(fanotify_users=users)))["fanotify_conflicts"]
+    assert check["status"] == "failed" and "othersecd" in check["detail"] and "wdavdaemon" not in check["detail"]
+    fapolicyd = [{"pid": 800, "comm": "fapolicyd", "exe": "/usr/sbin/fapolicyd", "blocking": True}]
+    check = by_id(suite(after=system_changed(fanotify_users=fapolicyd)))["fanotify_conflicts"]
+    assert check["status"] == "passed" and check["detail"].startswith("Fapolicyd blocks")
+    debian = system_changed(fanotify_users=fapolicyd, os_release={"id": "debian", "version_id": "12", "pretty_name": "Debian 12"})
+    assert by_id(suite(after=debian))["fanotify_conflicts"]["status"] == "failed"
+
+
+def test_missing_iptables_is_low_severity():
+    check = by_id(suite(after=system_changed(iptables=False)))["iptables_present"]
+    assert check["status"] == "failed" and check["severity"] == "low"
+
+
+def test_preflight_runs_only_the_readiness_checks():
+    probe = {"taken_at": REAL["taken_at"], "system": REAL["system"], "package": REAL["package"]}
+    data = {"host": "vm1", "now": NOW, "probes": {"after": probe}, "actions": {}, "settings": settings(scope="preflight"), "fleet": {}}
+    result = checks.mde_linux_checks_suite(data)
+    jsonschema.validate(result, SUITE_SCHEMA)
+    assert {c["id"] for c in result["checks"]} == READINESS
+
+
+def test_old_probes_without_the_readiness_fields_skip_rather_than_fail():
+    probe = copy.deepcopy(REAL)
+    for field in ("os_release", "systemd", "mount_options", "fanotify_users", "iptables", "kernel_config"):
+        probe["system"].pop(field)
+    result = by_id(suite(after=probe))
+    assert {k for k in READINESS if result[k]["status"] == "skipped"} == {
+        "supported_platform",
+        "systemd_present",
+        "mounts_allow_exec",
+        "fanotify_conflicts",
+        "iptables_present",
+        "fanotify_supported",
+    }
+
+
 # --- A host without the agent --------------------------------------------------------------------
 
 
@@ -225,7 +352,7 @@ def test_a_host_without_the_agent_fails_once_and_says_why_everything_else_was_no
     failed = {k for k, c in result.items() if c["status"] in ("failed", "error")}
     assert failed == {"agent_installed"}
     ran = {k for k, c in result.items() if c["status"] == "passed"}
-    assert ran == {"system_requirements", "disk_space_for_updates", "filesystems_supported", "time_synchronised", "selinux_mode_unchanged"}
+    assert ran == READINESS | {"selinux_mode_unchanged"}
     assert result["disk_space_for_updates"]["name"] == "There is room to install Defender"
     assert result["service_running"]["detail"] == "Not checked: mdatp is not installed."
     assert "metrics" not in result["resource_usage"]
@@ -236,6 +363,16 @@ def test_too_little_room_to_install_fails():
     probe["system"]["free_mib"]["/opt"] = 300.0
     check = by_id(suite(after=probe, before=copy.deepcopy(probe)))["disk_space_for_updates"]
     assert check["status"] == "failed" and "the install needs about 600" in check["detail"]
+
+
+def test_microsofts_2_gb_minimum_counts_a_shared_file_system_once():
+    probe = without_agent()
+    probe["system"]["free_mib"].update({"/opt": 1500.0, "/var": 1500.0})
+    shared = copy.deepcopy(probe)
+    shared["system"]["mount_options"]["/var"]["mount"] = "/"
+    check = by_id(suite(after=shared, before=copy.deepcopy(shared)))["disk_space_for_updates"]
+    assert "1500 MiB free across /opt and /var, below Microsoft's 2 GB minimum" in check["detail"]
+    assert by_id(suite(after=probe, before=copy.deepcopy(probe)))["disk_space_for_updates"]["status"] == "passed"
 
 
 # --- Installation ---------------------------------------------------------------------------------

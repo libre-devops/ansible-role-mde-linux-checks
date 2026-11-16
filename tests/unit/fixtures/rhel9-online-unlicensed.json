@@ -578,7 +578,58 @@
    "present": true
   },
   "time_synchronised": true,
-  "uptime_seconds": 237.8
+  "uptime_seconds": 237.8,
+  "architecture": "x86_64",
+  "os_release": {
+   "id": "rhel",
+   "version_id": "9.8",
+   "name": "Red Hat Enterprise Linux",
+   "pretty_name": "Red Hat Enterprise Linux 9.8 (Plow)",
+   "id_like": "fedora"
+  },
+  "systemd": true,
+  "kernel_config": {
+   "CONFIG_FANOTIFY": "y",
+   "CONFIG_FANOTIFY_ACCESS_PERMISSIONS": "y",
+   "CONFIG_DEBUG_INFO_BTF": "y"
+  },
+  "mount_options": {
+   "/opt": {
+    "mount": "/",
+    "options": [
+     "rw",
+     "seclabel",
+     "relatime",
+     "attr2",
+     "inode64",
+     "logbufs=8",
+     "logbsize=32k",
+     "noquota"
+    ]
+   },
+   "/var": {
+    "mount": "/var",
+    "options": [
+     "rw",
+     "seclabel",
+     "relatime",
+     "attr2",
+     "inode64",
+     "logbufs=8",
+     "logbsize=32k",
+     "noquota"
+    ]
+   }
+  },
+  "fanotify_users": [
+   {
+    "pid": 1103,
+    "comm": "wdavdaemon",
+    "exe": "/opt/microsoft/mdatp/sbin/wdavdaemon",
+    "blocking": true
+   }
+  ],
+  "iptables": true
  },
  "taken_at": 1794777412.7139378
 }
