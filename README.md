@@ -72,7 +72,7 @@ No check fails the play: every result reaches the report, and the report decides
 ansible-galaxy role install libre_devops.mde_linux_checks libre_devops.test_results_report
 ```
 
-Or pin releases from GitHub, as in [`examples/requirements.yml`](./examples/requirements.yml). Without Galaxy, see [Using the role without Galaxy](./docs/using-without-galaxy.md).
+Or pin releases from GitHub, as in [`examples/requirements.yml`](./examples/requirements.yml). Without Galaxy, see [Using the role without Galaxy](./docs/using-without-galaxy.md). To check an estate before a rollout, see [Checking an estate's readiness](./docs/estate-readiness.md).
 
 ## Quick start
 
@@ -163,6 +163,11 @@ The log-based checks look back `mde_linux_checks_history_hours` (24 by default),
         test_results_report_title: Defender for Endpoint readiness
         test_results_report_max_failed_hosts: 1000   # report every host, fail none of the run
 ```
+
+[Checking an estate's readiness](./docs/estate-readiness.md) is the full guide:
+- running it across many hosts with [`examples/estate-readiness.yml`](./examples/estate-readiness.yml);
+- reading the HTML report, and parsing the JSON or CSV into a work list;
+- comparing runs as hosts are fixed.
 
 Microsoft's support list changes with its releases. The role carries it as data (`vars/main.yml`, from the prerequisites page); replace it with `mde_linux_checks_supported_platforms` when Microsoft adds or drops a distribution before the role catches up.
 

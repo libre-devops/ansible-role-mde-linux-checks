@@ -388,7 +388,7 @@ class Probe(object):
         result["systemd"] = os.path.isdir("/run/systemd/system")
         result["kernel_config"] = self.kernel_config(result["kernel"])
         result["mount_options"] = self.mount_options(("/opt", "/var"))
-        result["fanotify_users"] = self.fanotify_users()
+        result["fanotify_users"], result["fanotify_complete"] = self.fanotify_users()
         result["iptables"] = bool(self.which("iptables") or self.which("iptables-nft"))
         uptime = self.read("/proc/uptime")
         result["uptime_seconds"] = float(uptime.split()[0]) if uptime else None
@@ -490,13 +490,18 @@ class Probe(object):
         mdatp reports them once installed (conflicting_applications); this finds them before.
         """
         users = []
+        # Without root another user's descriptors are unreadable: say so, so the check skips
+        # rather than passing on what it could see.
+        complete = True
         for entry in os.listdir("/proc"):
             if not entry.isdigit():
                 continue
             fd_dir = "/proc/%s/fd" % entry
             try:
                 descriptors = os.listdir(fd_dir)
-            except (IOError, OSError):
+            except (IOError, OSError) as exc:
+                if getattr(exc, "errno", None) == 13:  # EACCES; a process that has exited is fine
+                    complete = False
                 continue
             blocking, holds = False, False
             for fd in descriptors:
@@ -520,7 +525,7 @@ class Probe(object):
                 except (IOError, OSError):
                     comm, exe = "?", "?"
                 users.append({"pid": int(entry), "comm": comm, "exe": exe, "blocking": blocking})
-        return users
+        return users, complete
 
     def filesystems(self):
         mounts = []

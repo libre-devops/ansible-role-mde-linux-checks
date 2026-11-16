@@ -298,6 +298,11 @@ def test_other_blocking_fanotify_users_fail_but_fapolicyd_on_rhel_does_not():
     assert by_id(suite(after=debian))["fanotify_conflicts"]["status"] == "failed"
 
 
+def test_fanotify_conflicts_skip_when_not_every_process_was_readable():
+    check = by_id(suite(after=system_changed(fanotify_users=[], fanotify_complete=False)))["fanotify_conflicts"]
+    assert check["status"] == "skipped" and "become" in check["detail"]
+
+
 def test_missing_iptables_is_low_severity():
     check = by_id(suite(after=system_changed(iptables=False)))["iptables_present"]
     assert check["status"] == "failed" and check["severity"] == "low"

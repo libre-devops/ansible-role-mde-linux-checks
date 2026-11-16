@@ -16,4 +16,5 @@ Notable changes to this role. The format follows [Keep a Changelog](https://keep
 - Upgrade testing: a snapshot before the upgrade and the `upgrade_` checks after it (version, identity, settings, exclusions, health fields, definitions, dependencies, memory).
 - Metrics for the report's limits (scan time, EICAR detection time, memory, CPU, reboot time and more), and evidence: what the probes read, and Microsoft's diagnostic package on failure.
 - Unit tests on a real RHEL 9 host's probe data, and Molecule scenarios with the real package and a stub `mdatp` replaying captured output.
+- `docs/estate-readiness.md` and `examples/estate-readiness.yml`: checking a whole estate's readiness before a rollout, and reading, parsing and comparing the results.
 - `docs/using-without-galaxy.md`.

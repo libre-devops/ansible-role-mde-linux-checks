@@ -1,0 +1,36 @@
+---
+# Can these hosts take Microsoft Defender for Endpoint? The readiness checks only: one read-only
+# probe per host, nothing installed, nothing changed. See docs/estate-readiness.md.
+#
+#   ansible-playbook -i inventory.ini examples/estate-readiness.yml -f 50
+#
+# The report lands in readiness/<date and time>/: open test-results.html, or parse
+# test-results.json or test-results.csv.
+- name: Check the estate's readiness for Defender for Endpoint
+  hosts: "{{ readiness_hosts | default('all') }}"
+  become: true
+  # Facts give the report each host's distribution and architecture.
+  gather_facts: true
+  vars:
+    test_results_report_title: Defender for Endpoint readiness
+    test_results_report_dir: "{{ playbook_dir }}/readiness/{{ readiness_run }}"
+    test_results_report_formats: [json, html, csv]
+    # Report every host; a host that cannot take Defender is a finding, not a failed run.
+    test_results_report_enforce: false
+    # Count medium and above. iptables missing (low) is a note: dnf or apt installs it with the
+    # agent when the host has repositories.
+    test_results_report_fail_severity: medium
+    test_results_report_properties:
+      purpose: Readiness for Defender for Endpoint, before a rollout
+  pre_tasks:
+    # Once for the run (run_once gives every host the same fact), so all hosts report into one
+    # directory: a time worked out per host could differ by seconds.
+    - name: Name this run's report directory
+      ansible.builtin.set_fact:
+        readiness_run: "{{ now(utc=true).strftime('%Y%m%d-%H%M%S') }}"
+      run_once: true
+  roles:
+    - role: libre_devops.mde_linux_checks
+      vars:
+        mde_linux_checks_scope: preflight
+    - role: libre_devops.test_results_report

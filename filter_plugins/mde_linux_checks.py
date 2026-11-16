@@ -1606,6 +1606,15 @@ class Evaluation(object):
         name = "No other product uses fanotify in blocking mode"
         if users is None:
             add("fanotify_conflicts", name, "skipped", "high", "readiness", "This probe did not look for fanotify users.")
+        elif system.get("fanotify_complete") is False:
+            add(
+                "fanotify_conflicts",
+                name,
+                "skipped",
+                "high",
+                "readiness",
+                "Could not read every process's file descriptors: run the checks with become (root).",
+            )
         else:
             others = [
                 u
