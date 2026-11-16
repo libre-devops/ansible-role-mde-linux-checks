@@ -9,6 +9,11 @@ driver:
   name: podman
 
 platforms:
+  - name: mck-rhel7
+    image: registry.access.redhat.com/ubi7/ubi-init:latest
+    dockerfile: ../../.config/molecule/Containerfile.j2
+    command: /sbin/init
+    systemd: always
   - name: mck-rhel9
     image: registry.access.redhat.com/ubi9/ubi-init:latest
     dockerfile: ../../.config/molecule/Containerfile.j2
@@ -31,6 +36,14 @@ provisioner:
     defaults:
       callback_result_format: yaml
       interpreter_python: auto_silent
+  inventory:
+    host_vars:
+      # RHEL 7 ships Python 2.7, which ansible-core no longer supports on targets.
+      # Its systemd 219 cannot run as PID 1 on a cgroup v2 host (this one, and GitHub's runners), so
+      # systemd_present rightly fails in its container.
+      mck-rhel7:
+        ansible_python_interpreter: /opt/python/bootstrap/bin/python3
+        __verify_systemd_runs: false
 
 verifier:
   name: ansible

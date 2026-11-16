@@ -425,13 +425,22 @@ class Probe(object):
             selinux["mode"] = "disabled"
         result["selinux"] = selinux
 
-        timedatectl = self.which("timedatectl")
-        if timedatectl:
-            rc, out, _ = self.run([timedatectl, "show", "-p", "NTPSynchronized", "--value"])
-            result["time_synchronised"] = out.strip() == "yes" if rc == 0 else None
-        else:
-            result["time_synchronised"] = None
+        result["time_synchronised"] = self.time_synchronised()
         return result
+
+    def time_synchronised(self):
+        """Whether the clock is NTP-synchronised, or None when timedatectl cannot say."""
+        timedatectl = self.which("timedatectl")
+        if not timedatectl:
+            return None
+        rc, out, _ = self.run([timedatectl, "show", "-p", "NTPSynchronized", "--value"])
+        if rc == 0 and out.strip() in ("yes", "no"):
+            return out.strip() == "yes"
+        # systemd before 239 (RHEL 7 has 219) has no "show": read the status text, which says
+        # "NTP synchronized: yes" there and "System clock synchronized: yes" in later releases.
+        rc, out, _ = self.run([timedatectl, "status"])
+        match = re.search(r"(?:NTP|System clock) synchronized:\s*(yes|no)", out) if rc == 0 else None
+        return match.group(1) == "yes" if match else None
 
     @staticmethod
     def read(path):

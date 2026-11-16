@@ -216,7 +216,7 @@ These need no agent, run first, and are the only checks in the preflight scope. 
 | `mounts_allow_exec` | Critical | `/opt` and `/var` are not mounted `noexec`. | The agent runs from `/opt/microsoft/mdatp`, and its engine updates into `/var/opt/microsoft/mdatp`. Hardening baselines set `noexec` on `/tmp` and `/var/tmp`; set on `/opt` or `/var` it stops the agent. |
 | `filesystems_supported` | Medium | `/`, `/opt`, `/var`, `/tmp` and `/home` are on file systems real-time protection watches. | NFS or CIFS home directories are not protected in real time. |
 | `fanotify_supported` | High | The running kernel has `CONFIG_FANOTIFY` and `CONFIG_FANOTIFY_ACCESS_PERMISSIONS`. | Real-time protection blocks files through fanotify permission events. Skipped when the kernel's config is not readable. |
-| `ebpf_supported` | Medium | The kernel has BTF (`/sys/kernel/btf/vmlinux`). | Without it EDR falls back to the netlink provider and sees less. |
+| `ebpf_supported` | Medium | The kernel meets Microsoft's minimum for the eBPF provider on this distribution (RHEL and CentOS 7.6 and later need 3.10.0-957.10, for example). A distribution not in Microsoft's table needs BTF (`/sys/kernel/btf/vmlinux`) instead. | Without eBPF, EDR falls back to the netlink provider and misses file and socket events. RHEL 7 has no BTF but is supported, so BTF alone is the wrong test there. |
 | `fanotify_conflicts` | High | No other process uses fanotify in blocking mode, from `/proc/<pid>/fdinfo`. fapolicyd passes on RHEL and Fedora, where Microsoft supports it. | Microsoft warns another blocking fanotify product can hang the system. mdatp reports this only once installed (`conflicting_applications`). |
 | `iptables_present` | Low | `iptables` is installed. | The package needs it and device isolation uses it. dnf and apt bring it, but an install from package files must push it too. |
 | `time_synchronised` | Medium | The clock is NTP-synchronised. | Certificate checks against the cloud fail when it drifts. |
@@ -491,11 +491,12 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 - **The same VM, upgraded** from 101.26091.0004 to 101.26101.0000: every `upgrade_` check passed, and memory fell 10.9%.
 - **Live, 15 November 2026, on a RHEL 9.8 Azure VM with no route out** (the azure-orchestration `mde-rhel-offline` stack): mdatp 101.26101.0000 installed from the RPM through the bastion, then the checks with `mde_linux_checks_online: false`. Every check that can run offline passed, and the run took 5 minutes 32 seconds with the install. It found that cloud-delivered protection, on by default, made every detection wait for the cloud: EICAR in 40.5 s, against 0.4 s with `cloudService.enabled: false`. Hence `offline_cloud_protection`.
 - **In CI**, Molecule installs the real mdatp package with `libre_devops.mde_linux` in systemd containers on RHEL 9, Debian 12 and Ubuntu 24.04. A stub `mdatp` command replays the VM's output, or a broken version of it. The package, service, process and system probes are real.
-- **Unit tests** cover every check on the VM's probe data, and on that data changed to break each one.
+- **In CI on RHEL 7 (UBI 7)**, the `no_agent` scenario runs preflight and a full run with Python from a python-build-standalone archive, as `libre_devops.python` pushes it. RHEL 7's systemd 219 cannot run as PID 1 on a cgroup v2 host, so `systemd_present` rightly fails in that container, and the agent's service and checks on RHEL 7 need a real VM.
+- **Unit tests** cover every check on the VM's probe data, and on that data changed to break each one, including RHEL 7's kernel and its systemd 219 (no `timedatectl show`, no `NRestarts`).
 - **Not yet tested:**
   - an onboarded device: `quick_scan`, `healthy`, `organisation` and `product_expiry`, whose formats follow Microsoft's documentation;
   - Debian and Ubuntu outside containers;
-  - SLES, and RHEL 8.
+  - SLES, RHEL 8, and RHEL 7 on a VM.
 
 ## Troubleshooting
 

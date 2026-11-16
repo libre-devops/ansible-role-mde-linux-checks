@@ -21,6 +21,10 @@
       - ebpf_supported
       - fanotify_conflicts
       - iptables_present
+    # Checks that may fail on a host with no agent: iptables is not in every minimal image, and
+    # UBI 7's systemd cannot run on a cgroup v2 host (see .config/molecule/config.yml).
+    __verify_may_fail: >-
+      {{ ['agent_installed', 'iptables_present'] + ([] if __verify_systemd_runs | default(true) else ['systemd_present']) }}
   tasks:
     - name: Check both suites match the report's format
       ansible.builtin.command:
@@ -43,7 +47,7 @@
           - __verify_preflight.name == 'Microsoft Defender for Endpoint on Linux readiness'
           - __verify_preflight_status.supported_platform == 'passed'
           - __verify_preflight_status.kernel_supported == 'passed'
-          - __verify_preflight_status.systemd_present == 'passed'
+          - __verify_preflight_status.systemd_present == ('passed' if __verify_systemd_runs | default(true) else 'failed')
           - __verify_preflight_status.mounts_allow_exec == 'passed'
           - __verify_preflight_status.disk_space_for_updates == 'passed'
         fail_msg: "{{ __verify_preflight.checks | map(attribute='id') | zip(__verify_preflight.checks | map(attribute='detail')) | list | to_json }}"
@@ -53,7 +57,7 @@
       ansible.builtin.assert:
         that:
           - __verify_full.checks | selectattr('id', 'equalto', 'agent_installed') | map(attribute='status') | first == 'failed'
-          - __verify_full.checks | rejectattr('id', 'in', ['agent_installed', 'iptables_present'])
+          - __verify_full.checks | rejectattr('id', 'in', __verify_may_fail)
             | selectattr('status', 'in', ['failed', 'error']) | list | length == 0
           - >-
             __verify_full.checks | selectattr('id', 'in', ['service_running', 'eicar_detection', 'resource_usage'])

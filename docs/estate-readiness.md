@@ -34,7 +34,7 @@ Microsoft's prerequisites, and the things that stop an install or the agent work
 | `mounts_allow_exec` | `/opt` or `/var` is mounted `noexec`, which hardening baselines sometimes do. |
 | `filesystems_supported` | `/`, `/opt`, `/var`, `/tmp` or `/home` is on a file system real-time protection does not watch, such as NFS. |
 | `fanotify_supported` | The kernel lacks fanotify permission events, which real-time protection blocks files with. |
-| `ebpf_supported` | The kernel has no BTF, so EDR would fall back to the netlink provider. |
+| `ebpf_supported` | The kernel is older than Microsoft's minimum for the eBPF provider on its distribution (or, off Microsoft's table, has no BTF), so EDR would fall back to the netlink provider. |
 | `fanotify_conflicts` | Another product uses fanotify in blocking mode, which Microsoft warns can hang the system. fapolicyd on RHEL and Fedora is supported. |
 | `iptables_present` | `iptables` is missing: dnf and apt install it with the agent, but an install from package files must bring it. |
 | `time_synchronised` | The clock is not NTP-synchronised. |

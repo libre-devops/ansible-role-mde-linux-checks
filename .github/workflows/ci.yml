@@ -101,6 +101,7 @@ jobs:
           - { scenario: default, platform: debian12 }
           - { scenario: default, platform: ubuntu2404 }
           - { scenario: failures, platform: rhel9 }
+          - { scenario: no_agent, platform: rhel7 }
           - { scenario: no_agent, platform: rhel9 }
           - { scenario: no_agent, platform: debian12 }
           - { scenario: no_agent, platform: ubuntu2404 }

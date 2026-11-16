@@ -80,6 +80,34 @@ IDENTITY_FIELDS = ("machine_guid", "edr_machine_id", "org_id")
 # --- Small helpers ---------------------------------------------------------------------------
 
 
+# Microsoft's minimum kernels for the eBPF event provider, by os-release ID, and by ID and major
+# version where they differ (DOCS["ebpf"], as of July 2026). Oracle Linux's entry is RHCK's; UEK's
+# minimum, 5.4, is above it anyway. Distributions not listed fall back to looking for BTF.
+EBPF_MIN_KERNELS = {
+    "rhel": "3.10.0-957.10",
+    "centos": "3.10.0-957.10",
+    "ol": "3.10.0-1160",
+    "ubuntu": "4.15.0",
+    "fedora": "5.8.15",
+    "sles": "5.3.18-18.47",
+    "sles_sap": "5.3.18-18.47",
+    "debian": "4.19.0",
+    "amzn": "5.4.261-174.360",
+    ("rocky", "8"): "4.18.0-425",
+    ("rocky", "9"): "5.14.0-284",
+    ("almalinux", "8"): "4.18.0-305",
+    ("almalinux", "9"): "5.14.0-284",
+}
+
+
+def ebpf_min_kernel(osr):
+    """Microsoft's minimum kernel for the eBPF event provider on this distribution, or None."""
+    osr = osr or {}
+    os_id = osr.get("id") or ""
+    major = str(osr.get("version_id") or "").split(".")[0]
+    return EBPF_MIN_KERNELS.get((os_id, major)) or EBPF_MIN_KERNELS.get(os_id)
+
+
 def version_tuple(value):
     return tuple(int(part) for part in re.findall(r"\d+", str(value or ""))) or (0,)
 
@@ -495,13 +523,20 @@ class Evaluation(object):
                 notes.append("restarted by systemd %s since it was last started" % plural(restarts, "time"))
             if before_service.get("MainPID") and service.get("MainPID") and before_service["MainPID"] != service["MainPID"]:
                 notes.append("its main process changed from %s to %s during the checks" % (before_service["MainPID"], service["MainPID"]))
+            # systemd before 235 (RHEL 7 has 219) does not count restarts: say what cannot be seen.
+            counted = isinstance(service.get("NRestarts"), int)
             add(
                 "no_service_restarts",
                 "The service has not been restarting",
                 "passed" if not notes else "failed",
                 "high",
                 "stability",
-                "No automatic restarts since it was last started, and the same main process throughout."
+                (
+                    "No automatic restarts since it was last started, and the same main process throughout."
+                    if counted
+                    else "The same main process throughout. This systemd does not count automatic restarts "
+                    "(NRestarts arrived in systemd 235), so one before the run would not show here."
+                )
                 if not notes
                 else "; ".join(notes)[:1].upper() + "; ".join(notes)[1:] + ".",
                 metrics={"restarts": restarts},
@@ -1590,15 +1625,33 @@ class Evaluation(object):
             )
 
         btf = system.get("btf")
+        minimum = ebpf_min_kernel(osr)
+        kernel = system.get("kernel")
+        if minimum and kernel:
+            want = version_tuple(minimum)
+            ok = version_tuple(kernel)[: len(want)] >= want
+            distribution = "%s %s" % ((osr or {}).get("name") or (osr or {}).get("id"), (osr or {}).get("version_id") or "")
+            detail = (
+                "Kernel %s meets Microsoft's minimum for the eBPF provider on %s, %s." % (kernel, distribution.strip(), minimum)
+                if ok
+                else "Kernel %s is older than Microsoft's minimum for the eBPF provider on %s, %s: EDR would fall back to "
+                "the netlink provider and miss file and socket events." % (kernel, distribution.strip(), minimum)
+            )
+        else:
+            ok = bool(btf)
+            detail = (
+                "Not in Microsoft's eBPF kernel table; BTF is available (/sys/kernel/btf/vmlinux)."
+                if btf
+                else "Not in Microsoft's eBPF kernel table, and no BTF (/sys/kernel/btf/vmlinux): EDR would fall back to the "
+                "netlink provider and see less."
+            )
         add(
             "ebpf_supported",
             "The kernel supports the eBPF event provider",
-            "passed" if btf else "failed",
+            "passed" if ok else "failed",
             "medium",
             "readiness",
-            "BTF is available (/sys/kernel/btf/vmlinux)."
-            if btf
-            else "No BTF (/sys/kernel/btf/vmlinux): EDR would fall back to the netlink provider and see less.",
+            detail,
             docs=DOCS["ebpf"],
         )
 

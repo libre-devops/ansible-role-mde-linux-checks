@@ -282,9 +282,39 @@ def test_noexec_on_opt_fails():
 def test_kernel_without_fanotify_permissions_or_btf_fails():
     result = by_id(suite(after=system_changed(kernel_config={"CONFIG_FANOTIFY": "y"}, btf=False)))
     assert result["fanotify_supported"]["detail"] == "CONFIG_FANOTIFY_ACCESS_PERMISSIONS not set: real-time protection cannot block files."
-    assert result["ebpf_supported"]["status"] == "failed" and result["ebpf_supported"]["severity"] == "medium"
     unreadable = by_id(suite(after=system_changed(kernel_config=None)))["fanotify_supported"]
     assert unreadable["status"] == "skipped"
+
+
+RHEL7 = {
+    "id": "rhel",
+    "version_id": "7.9",
+    "name": "Red Hat Enterprise Linux Server",
+    "pretty_name": "Red Hat Enterprise Linux Server 7.9 (Maipo)",
+    "id_like": "fedora",
+}
+ROCKY10 = {"id": "rocky", "version_id": "10.0", "name": "Rocky Linux", "pretty_name": "Rocky Linux 10.0 (Red Quartz)"}
+
+
+def test_ebpf_is_judged_on_microsofts_kernel_table_without_btf():
+    rhel7 = by_id(suite(after=system_changed(os_release=RHEL7, kernel="3.10.0-1160.119.1.el7.x86_64", btf=False)))["ebpf_supported"]
+    assert rhel7["status"] == "passed" and rhel7["detail"].endswith("Red Hat Enterprise Linux Server 7.9, 3.10.0-957.10.")
+    old = system_changed(os_release=dict(RHEL7, version_id="7.5"), kernel="3.10.0-862.14.4.el7.x86_64", btf=False)
+    check = by_id(suite(after=old))["ebpf_supported"]
+    assert check["status"] == "failed" and check["severity"] == "medium" and "netlink" in check["detail"]
+    rocky8 = system_changed(os_release={"id": "rocky", "version_id": "8.6", "name": "Rocky Linux"}, kernel="4.18.0-372.9.1.el8.x86_64")
+    assert by_id(suite(after=rocky8))["ebpf_supported"]["status"] == "failed"
+
+
+def test_ebpf_falls_back_to_btf_off_microsofts_table():
+    with_btf = by_id(suite(after=system_changed(os_release=ROCKY10, btf=True)))["ebpf_supported"]
+    assert with_btf["status"] == "passed" and with_btf["detail"].startswith("Not in Microsoft's eBPF kernel table; BTF")
+    assert by_id(suite(after=system_changed(os_release=ROCKY10, btf=False)))["ebpf_supported"]["status"] == "failed"
+
+
+def test_rhel7_readiness_passes():
+    result = by_id(suite(after=system_changed(os_release=RHEL7, kernel="3.10.0-1160.119.1.el7.x86_64", btf=False)))
+    assert [i for i in ("supported_platform", "kernel_supported", "ebpf_supported") if result[i]["status"] != "passed"] == []
 
 
 def test_other_blocking_fanotify_users_fail_but_fapolicyd_on_rhel_does_not():
@@ -459,6 +489,31 @@ def test_restarts_before_the_run_count_too():
     check = by_id(suite(after=probe, before=before))["no_service_restarts"]
     assert check["status"] == "failed" and check["metrics"]["restarts"] == 3
     assert check["detail"] == "Restarted by systemd 3 times since it was last started."
+
+
+def test_restarts_on_a_systemd_that_does_not_count_them_say_so():
+    probe = copy.deepcopy(REAL)
+    del probe["service"]["NRestarts"]
+    check = by_id(suite(after=probe, before=copy.deepcopy(probe)))["no_service_restarts"]
+    assert check["status"] == "passed" and "systemd 235" in check["detail"]
+
+
+@pytest.mark.parametrize(
+    ("show", "status", "expected"),
+    [
+        ((0, "yes\n"), None, True),
+        ((0, "no\n"), None, False),
+        # systemd 219 (RHEL 7): no show, the status text instead.
+        ((1, ""), (0, "      Local time: Mon\n     NTP enabled: yes\nNTP synchronized: yes\n"), True),
+        ((1, ""), (0, "System clock synchronized: no\n"), False),
+        ((1, ""), (1, "Failed to create bus connection"), None),
+    ],
+)
+def test_time_synchronised_reads_old_and_new_timedatectl(show, status, expected):
+    probe = probe_module.Probe.__new__(probe_module.Probe)
+    probe.which = lambda name: "/usr/bin/timedatectl"
+    probe.run = lambda args, check=False: (show if "show" in args else status) + ("",)
+    assert probe.time_synchronised() is expected
 
 
 def test_log_checks_say_how_far_back_they_looked():
