@@ -8,7 +8,7 @@ roles:
   - name: libre_devops.mde_linux_checks
     src: https://github.com/libre-devops/ansible-role-mde-linux-checks.git
     scm: git
-    version: 1.0.0
+    version: 1.0.1
   - name: libre_devops.test_results_report
     src: https://github.com/libre-devops/ansible-role-test-results-report.git
     scm: git

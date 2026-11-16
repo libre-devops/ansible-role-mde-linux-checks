@@ -4,6 +4,12 @@ Notable changes to this role. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 1.0.1 - 2026-11-16
+
+### Fixed
+
+- The Galaxy description fits Galaxy's 255-character limit. Galaxy refused 1.0.0 for it, so 1.0.1 is the first release on Galaxy; 1.0.0 is on GitHub only. `just lint` now checks the length.
+
 ## 1.0.0 - 2026-11-16
 
 ### Added
