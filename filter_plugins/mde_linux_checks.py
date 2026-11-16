@@ -1893,6 +1893,8 @@ class Evaluation(object):
         metrics = {"seconds_until_reachable": back} if back is not None else {}
         if settle.get("seconds") is not None:
             metrics["seconds_to_load_after_reboot"] = settle["seconds"]
+        if settle.get("settled") and settle.get("settle_seconds") is not None:
+            metrics["seconds_to_protect_after_reboot"] = settle["settle_seconds"]
         add(
             "service_survives_reboot",
             name,

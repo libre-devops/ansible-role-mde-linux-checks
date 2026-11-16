@@ -89,7 +89,9 @@ argument_specs:
         type: float
         default: 48
       mde_linux_checks_engine_timeout:
-        description: Seconds to wait for the antivirus engine to load, before the checks and after the reboot.
+        description: >-
+          Seconds to wait for the agent to finish starting, before the checks and after the reboot: the engine
+          loaded, real-time protection available when it is enabled, and the supplementary event provider up.
         type: int
         default: 300
       mde_linux_checks_eicar_timeout:

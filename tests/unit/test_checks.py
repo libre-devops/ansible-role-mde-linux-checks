@@ -516,6 +516,53 @@ def test_time_synchronised_reads_old_and_new_timedatectl(show, status, expected)
     assert probe.time_synchronised() is expected
 
 
+STARTING = (
+    REAL["mdatp"]["health_text"]
+    .replace("real_time_protection_available              : true", "real_time_protection_available              : false")
+    .replace('supplementary_events_subsystem              : "ebpf"', 'supplementary_events_subsystem              : "unavailable"')
+)
+
+
+def test_the_agent_is_settled_only_when_protection_and_events_are_up():
+    settled, _ = probe_module.parse_health(REAL["mdatp"]["health_text"])
+    starting, _ = probe_module.parse_health(STARTING)
+    assert probe_module.agent_settled(settled) and not probe_module.agent_settled(starting)
+    # Real-time protection switched off by design does not hold the wait; nor does a field a version lacks.
+    assert probe_module.agent_settled({"real_time_protection_enabled": False, "real_time_protection_available": False})
+    assert probe_module.agent_settled({})
+
+
+def test_the_wait_holds_until_the_agent_has_finished_starting(monkeypatch):
+    # RHEL 8 after a reboot, 16 November 2026: the daemon not up yet, then the engine loaded with
+    # real-time protection and the event providers still unavailable, then ready.
+    replies = iter([(1, "ERROR: daemon is not running"), (0, STARTING), (0, STARTING), (0, REAL["mdatp"]["health_text"])])
+    clock = iter(range(0, 1000, 3))
+    monkeypatch.setattr(probe_module.time, "time", lambda: next(clock))
+    monkeypatch.setattr(probe_module.time, "sleep", lambda seconds: None)
+    probe = probe_module.Probe.__new__(probe_module.Probe)
+    probe.run = lambda args, check=False: next(replies) + ("",)
+    wait = probe.wait_for_agent("/usr/bin/mdatp", 300)
+    assert wait["loaded"] and wait["settled"] and wait["status"] == "Engine load succeeded"
+    assert 0 < wait["seconds"] < wait["settle_seconds"]
+
+
+def test_the_wait_gives_up_at_its_timeout(monkeypatch):
+    clock = iter(range(0, 1000, 100))
+    monkeypatch.setattr(probe_module.time, "time", lambda: next(clock))
+    monkeypatch.setattr(probe_module.time, "sleep", lambda seconds: None)
+    probe = probe_module.Probe.__new__(probe_module.Probe)
+    probe.run = lambda args, check=False: (0, STARTING, "")
+    wait = probe.wait_for_agent("/usr/bin/mdatp", 250)
+    assert wait["loaded"] and not wait["settled"] and wait["settle_seconds"] >= 250
+
+
+def test_the_reboot_check_reports_how_long_protection_took():
+    settle = {"seconds": 0.1, "loaded": True, "settled": True, "settle_seconds": 24.0}
+    acts = actions(reboot={"ran": True, "seconds": 1}, settle_after_reboot=settle)
+    check = by_id(suite(rebooted=rebooted(), actions_=acts))["service_survives_reboot"]
+    assert check["status"] == "passed" and check["metrics"]["seconds_to_protect_after_reboot"] == 24.0
+
+
 def test_log_checks_say_how_far_back_they_looked():
     assert by_id(suite())["no_crashes"]["detail"] == "No core dumps or crash files in the last 24 h."
     assert by_id(suite(settings_=settings(history_hours=0)))["no_crashes"]["detail"].endswith("since the checks started.")

@@ -4,6 +4,10 @@ Notable changes to this role. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Fixed
+
+- After a reboot the probe waited for the antivirus engine only, so on a fast-booting host `service_survives_reboot` could read real-time protection and the event providers while they were still starting, and fail. Found live on RHEL 8.10, probed 22 s after boot. The wait (`mde_linux_checks_engine_timeout`) now also holds until real-time protection is available, when it is enabled, and the supplementary event provider is up, before the checks as well as after the reboot. The new metric `seconds_to_protect_after_reboot` keeps how long that took, so a slow start still shows.
+
 ## 1.1.0 - 2026-11-16
 
 ### Added

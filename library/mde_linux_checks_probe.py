@@ -33,8 +33,9 @@ options:
     default: 0
   wait_for_engine:
     description:
-      - Seconds to wait, before reading mdatp, for the antivirus engine to report it has loaded (a fresh start or a
-        reboot takes a while). 0 does not wait.
+      - Seconds to wait, before reading mdatp, for the agent to finish starting (a fresh start or a reboot takes a
+        while) - the antivirus engine loaded, real-time protection available when it is enabled, and the
+        supplementary event provider no longer unavailable. 0 does not wait.
     type: float
     default: 0
   sections:
@@ -119,6 +120,15 @@ def parse_health_value(raw):
     return raw, managed
 
 
+def agent_settled(fields):
+    """Whether the agent has finished starting, from mdatp health's fields: real-time protection
+    available when it is enabled, and the supplementary event provider no longer unavailable. A field
+    a version lacks does not hold the wait."""
+    if fields.get("real_time_protection_enabled") is True and fields.get("real_time_protection_available") is False:
+        return False
+    return fields.get("supplementary_events_subsystem") != "unavailable"
+
+
 def parse_health(text):
     fields, managed = {}, []
     for line in text.splitlines():
@@ -169,20 +179,7 @@ class Probe(object):
 
         wait = self.module.params["wait_for_engine"]
         if wait > 0:
-            started = time.time()
-            status = None
-            while True:
-                rc, out, _ = self.run([path, "health", "--field", "engine_load_status"])
-                status, _ = parse_health_value(out.strip().splitlines()[-1] if out.strip() else "")
-                if status == "Engine load succeeded" or time.time() - started >= wait:
-                    break
-                time.sleep(3)
-            result["engine_wait"] = {
-                "seconds": round(time.time() - started, 1),
-                "status": status,
-                "loaded": status == "Engine load succeeded",
-                "timeout": wait,
-            }
+            result["engine_wait"] = self.wait_for_agent(path, wait)
 
         started = time.time()
         rc, out, err = self.run([path, "health"])
@@ -427,6 +424,35 @@ class Probe(object):
 
         result["time_synchronised"] = self.time_synchronised()
         return result
+
+    def wait_for_agent(self, path, wait):
+        """Wait, up to wait seconds, for the agent to finish starting, and say how long each part took.
+
+        The engine loading is not enough: after a reboot of a fast-booting host (RHEL 8, 22 s after
+        boot) the engine had loaded while real-time protection and the event providers still said
+        unavailable, and the checks read that as a failure.
+        """
+        started = time.time()
+        status, loaded_after, settled = None, None, False
+        while True:
+            rc, out, _ = self.run([path, "health"])
+            fields, _ = parse_health(out) if rc == 0 else ({}, {})
+            status = fields.get("engine_load_status", status)
+            loaded = status == "Engine load succeeded"
+            if loaded and loaded_after is None:
+                loaded_after = round(time.time() - started, 1)
+            settled = loaded and agent_settled(fields)
+            if settled or time.time() - started >= wait:
+                break
+            time.sleep(3)
+        return {
+            "seconds": loaded_after if loaded_after is not None else round(time.time() - started, 1),
+            "status": status,
+            "loaded": loaded_after is not None,
+            "settled": settled,
+            "settle_seconds": round(time.time() - started, 1),
+            "timeout": wait,
+        }
 
     def time_synchronised(self):
         """Whether the clock is NTP-synchronised, or None when timedatectl cannot say."""

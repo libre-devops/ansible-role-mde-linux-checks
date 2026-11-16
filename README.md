@@ -243,7 +243,7 @@ These need no agent, run first, and are the only checks in the preflight scope. 
 | `no_unexpected_reboot` | Critical | The boot id did not change (before the deliberate reboot). | 101.25102.0005 fixed real-time scanning of `/dev/watchdog` rebooting hosts. |
 | `error_log` | Info | Defender logged nothing fatal or critical in the look-back window; counts its errors and warnings as metrics. | A device that is not onboarded logs errors all the time, so errors alone are only measured. |
 | `journal_errors` | Low | The unit logged no error-priority journal entries in the look-back window. | |
-| `service_survives_reboot` | Critical | After a reboot the service is running and enabled, the engine loads, real-time protection is available, and no new health issue appeared. Times how long until the host answers. | The 101.26042 upgrade fault showed only after a reboot. Skipped by the health profile. |
+| `service_survives_reboot` | Critical | After a reboot the service is running and enabled, the engine loads, real-time protection is available, and no new health issue appeared. Times how long until the host answers, and until real-time protection is up. | The 101.26042 upgrade fault showed only after a reboot. Skipped by the health profile. |
 
 ### Protection
 
@@ -411,7 +411,7 @@ test_results_report_limits:
 | `selinux_denials` | `denials` |
 | `resource_usage` | `memory_mib`, `cpu_percent`, `processes` |
 | `disk_usage` | `install_mib`, `data_mib`, `logs_mib` |
-| `service_survives_reboot` | `seconds_until_reachable`, `seconds_to_load_after_reboot` |
+| `service_survives_reboot` | `seconds_until_reachable`, `seconds_to_load_after_reboot`, `seconds_to_protect_after_reboot` |
 | `upgrade_health_fields`, `upgrade_resources` | `fields_removed`, `fields_added`, `memory_mib_before`, `memory_mib`, `memory_change_percent` |
 
 The suite's properties record what was tested on each host: the app, engine and definitions versions, the package, the release ring, the enforcement level, whether it is onboarded, the event provider, the kernel, SELinux and FIPS mode, the profile.
@@ -463,7 +463,7 @@ Every variable is validated against [`meta/argument_specs.yml`](./meta/argument_
 | `mde_linux_checks_history_hours` | `24` | How far back the log-based checks look. `0` looks only at the run. |
 | `mde_linux_checks_min_days_to_expiry` | `30` | Fewest days before the version expires. |
 | `mde_linux_checks_max_definitions_age_hours` | `48` | Oldest security intelligence allowed online. |
-| `mde_linux_checks_engine_timeout` | `300` | Seconds to wait for the engine, before the checks and after the reboot. |
+| `mde_linux_checks_engine_timeout` | `300` | Seconds to wait for the agent to finish starting, before the checks and after the reboot: the engine loaded, real-time protection available when it is enabled, and the supplementary event provider up. |
 | `mde_linux_checks_eicar_timeout` | `120` | Seconds to wait for the EICAR detection. |
 | `mde_linux_checks_scan_timeout` | `1800` | Seconds before the quick scan is cancelled. |
 | `mde_linux_checks_definitions_timeout` | `600` | Seconds for the security intelligence update. |
