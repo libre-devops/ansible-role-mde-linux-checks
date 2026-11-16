@@ -57,6 +57,33 @@ It judges and records; it does not deploy. Install and configure the agent with 
 
 No check fails the play: every result reaches the report, and the report decides. The EICAR test file and its quarantined copy are removed afterwards, and so is the role's working directory.
 
+```mermaid
+flowchart TD
+    settings["Check the settings"] --> scope{"mde_linux_checks_scope"}
+    scope -->|"preflight"| readiness["Probe readiness only<br/>no agent, changes nothing"]
+    scope -->|"full (default)"| before["Probe before<br/>readiness included"]
+    before --> act["Act, as the profile allows:<br/>intelligence update, connectivity test,<br/>EICAR test file, quick scan"]
+    act --> again["Probe again<br/>sample CPU and memory"]
+    again --> reboot["Reboot, probe once more<br/>release profile"]
+    reboot --> judge
+    readiness --> judge["Judge on the control node<br/>status, severity, reason"]
+    snapshot[("Snapshot from<br/>before an upgrade")] -.->|"compare_to"| judge
+    judge -.->|"snapshot_to"| saved[("Snapshot for<br/>the next upgrade")]
+    judge -.->|"evidence_dir"| evidence[("Evidence: probes,<br/>mdatp health, diagnostics")]
+    judge --> results[/"mde_linux_checks_test_results"/]
+    results --> report["libre_devops.test_results_report"]
+
+    classDef host fill:#dae8fc,stroke:#6c8ebf,color:#000
+    classDef control fill:#e1d5e7,stroke:#9673a6,color:#000
+    class readiness,before,act,again,reboot host
+    class settings,judge,results,report control
+```
+
+Blue runs on the host, purple on the control node. The draw.io version,
+[`docs/diagrams/mde-linux-checks.drawio`](docs/diagrams/mde-linux-checks.drawio), has three pages: a
+run, the 63 checks by group, and testing an upgrade. Open it in [draw.io](https://app.diagrams.net) or
+the desktop app; GitHub does not draw `.drawio` files.
+
 ## Requirements
 
 | What | Detail |

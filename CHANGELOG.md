@@ -4,6 +4,10 @@ Notable changes to this role. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+### Added
+
+- Diagrams: a Mermaid flowchart of a run in the README, and `docs/diagrams/mde-linux-checks.drawio` with three pages (a run, the 63 checks by group, testing an upgrade).
+
 ## 1.0.1 - 2026-11-16
 
 ### Fixed

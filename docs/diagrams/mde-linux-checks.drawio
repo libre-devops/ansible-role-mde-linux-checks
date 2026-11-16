@@ -1,0 +1,325 @@
+<mxfile host="drawio" agent="libre-devops" version="24.7.17" type="device">
+  <diagram name="How a run works" id="how-a-run-works">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c2" value="libre_devops.mde_linux_checks: how a run works" style="text;html=1;align=left;verticalAlign=top;fontSize=26;fontStyle=1;fontColor=#1E3A8A;" parent="1" vertex="1">
+          <mxGeometry x="40" y="20" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="Read, act, read again, judge. No check fails the play: every result reaches the report, and the report decides." style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#4D4D4D;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="40" y="62" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="On the control node (Ansible)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="130" width="540" height="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="On the host, over SSH" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F8FF;strokeColor=#0078D4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="620" y="130" width="540" height="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="" style="image;aspect=fixed;html=1;points=[];fontSize=12;image=img/lib/mscae/VM_Linux.svg;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;whiteSpace=wrap;labelWidth=160;" parent="c5" vertex="1">
+          <mxGeometry x="490" y="6" width="34" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="" style="image;aspect=fixed;html=1;points=[];fontSize=12;image=img/lib/azure2/security/Azure_Defender.svg;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;whiteSpace=wrap;labelWidth=160;" parent="c5" vertex="1">
+          <mxGeometry x="450" y="6" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" value="What comes out" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="1200" y="130" width="410" height="1010" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" value="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c4" vertex="1">
+          <mxGeometry x="20" y="50" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" value="&lt;b&gt;Check the settings&lt;/b&gt;&lt;br&gt;The variables make sense. A restart of mdatp an earlier role queued runs now, not in the middle of the checks." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="60" y="50" width="460" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" value="2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c5" vertex="1">
+          <mxGeometry x="20" y="110" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" value="&lt;b&gt;Probe before&lt;/b&gt;&lt;br&gt;One read-only module reads everything in one round trip: the agent's health, threat history and exclusions; the package and the service; memory and CPU; the system (boot id, disks, SELinux, FIPS, the clock). It waits for the antivirus engine to load. Python 3.6 and later." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c5" vertex="1">
+          <mxGeometry x="60" y="110" width="460" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" value="3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c5" vertex="1">
+          <mxGeometry x="20" y="290" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" value="&lt;b&gt;Act, as the profile allows&lt;/b&gt;&lt;br&gt;&amp;#8226; security intelligence update (online)&lt;br&gt;&amp;#8226; connectivity test (online)&lt;br&gt;&amp;#8226; the EICAR test file, timed (release profile)&lt;br&gt;&amp;#8226; a quick scan&lt;br&gt;&lt;i&gt;Only with the agent. A test that fails or times out is recorded; it never stops the play.&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c5" vertex="1">
+          <mxGeometry x="60" y="290" width="460" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" value="4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c5" vertex="1">
+          <mxGeometry x="20" y="480" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" value="&lt;b&gt;Probe again&lt;/b&gt;&lt;br&gt;Samples Defender's CPU and memory, and reads what happened since the start: logs, SELinux denials, crash dumps." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c5" vertex="1">
+          <mxGeometry x="60" y="480" width="460" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" value="5" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c5" vertex="1">
+          <mxGeometry x="20" y="610" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" value="&lt;b&gt;Reboot, probe once more&lt;/b&gt;&lt;br&gt;Release profile. Proves the agent comes back by itself, and times it." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c5" vertex="1">
+          <mxGeometry x="60" y="610" width="460" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" value="6" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c4" vertex="1">
+          <mxGeometry x="20" y="740" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" value="&lt;b&gt;Judge&lt;/b&gt;&lt;br&gt;A filter on the control node, unit-tested on real probe data. Each of the 63 checks gets a status (passed, failed, error, or skipped with the reason) and a severity." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="60" y="740" width="460" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" value="7" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c4" vertex="1">
+          <mxGeometry x="20" y="860" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" value="&lt;b&gt;Snapshot, or compare with one&lt;/b&gt;&lt;br&gt;snapshot_to saves the host before an upgrade; compare_to adds the 9 upgrade_ checks after it." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="60" y="860" width="460" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" value="8" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E3A8A;fontColor=#FFFFFF;fontStyle=1;fontSize=14;" parent="c4" vertex="1">
+          <mxGeometry x="20" y="945" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" value="&lt;b&gt;Keep the evidence&lt;/b&gt;&lt;br&gt;probes.json and mdatp health; Microsoft's diagnostic package when a check fails." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="60" y="945" width="460" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" parent="1" edge="1" source="c10" target="c12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c12" target="c14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c14" target="c16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c16" target="c18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" parent="1" edge="1" source="c18" target="c20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c20" target="c22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c22" target="c24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" value="&lt;b&gt;mde_linux_checks_test_results&lt;/b&gt;&lt;br&gt;a fact, in the format libre_devops.test_results/v1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;shape=document;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="740" width="370" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c33" value="&lt;b&gt;libre_devops.test_results_report&lt;/b&gt;&lt;br&gt;the verdict against your thresholds; HTML for people, JSON for pipelines, JUnit for CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="870" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c34" value="results" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="c20" target="c32">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="930" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c32" target="c33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c36" value="&lt;b&gt;Preflight scope&lt;/b&gt;&lt;br&gt;mde_linux_checks_scope: preflight runs only the first probe and the 12 readiness checks. It needs no agent and changes nothing: run it across an estate before a rollout (docs/estate-readiness.md)." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top;spacing=8;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="50" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c37" value="&lt;b&gt;Profiles&lt;/b&gt;&lt;br&gt;&lt;b&gt;release&lt;/b&gt; (default): everything, the EICAR test and a reboot included, for machines about to be thrown away.&lt;br&gt;&lt;b&gt;health&lt;/b&gt;: no EICAR, no reboot, for devices in use.&lt;br&gt;Every test is its own boolean, and a test left out is reported as skipped, with the reason." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top;spacing=8;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="170" width="370" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="c38" value="&lt;b&gt;Online, offline, onboarded&lt;/b&gt;&lt;br&gt;Offline: no intelligence update or connectivity test; offline_cloud_protection runs instead. Not onboarded: no quick scan (mdatp scans on demand only once onboarded), and the onboarding checks skip. Nothing that cannot work is failed." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top;spacing=8;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="320" width="370" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c39" value="&lt;b&gt;Time&lt;/b&gt;&lt;br&gt;Through a bastion, where every task is a round trip, the whole run takes about four minutes, the reboot included." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top;spacing=8;" parent="c8" vertex="1">
+          <mxGeometry x="20" y="460" width="370" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="The checks" id="the-checks">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c2" value="The 63 checks, in nine groups" style="text;html=1;align=left;verticalAlign=top;fontSize=26;fontStyle=1;fontColor=#1E3A8A;" parent="1" vertex="1">
+          <mxGeometry x="40" y="20" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="Each one exists because something real goes wrong; many are named after the agent release that broke it." style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#4D4D4D;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="40" y="62" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="Readiness: 12" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="130" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;Can the host take Defender? Needs no agent; the only group in the preflight scope.&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c4" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="supported_platform, kernel_supported, systemd_present, system_requirements, disk_space_for_updates, mounts_allow_exec, filesystems_supported, fanotify_supported, ebpf_supported, fanotify_conflicts, iptables_present, time_synchronised" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c4" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="Installation: 6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="570" y="130" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" value="&lt;b&gt;Is the right package installed, signed by Microsoft, complete and intact?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c7" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" value="agent_installed&lt;br&gt;agent_version&lt;br&gt;package_signature&lt;br&gt;package_dependencies&lt;br&gt;package_files_intact&lt;br&gt;health_readable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c7" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" value="Stability: 8" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="130" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" value="&lt;b&gt;Does it stay up, and come back by itself after a reboot?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c10" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" value="service_running&lt;br&gt;service_enabled&lt;br&gt;no_service_restarts&lt;br&gt;no_crashes&lt;br&gt;no_unexpected_reboot&lt;br&gt;error_log&lt;br&gt;journal_errors&lt;br&gt;service_survives_reboot" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c10" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" value="Protection: 14" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="400" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" value="&lt;b&gt;Does it protect: engine loaded, real time on, EICAR caught, intelligence current?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c13" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" value="engine_loaded, enforcement_level, real_time_protection, real_time_subsystem, supplementary_events, conflicting_applications, offline_cloud_protection, engine_signature_verification, folder_permissions, eicar_detection, quick_scan, definitions_update, definitions_current, product_expiry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c13" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" value="Configuration: 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="570" y="400" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" value="&lt;b&gt;Is the managed configuration valid, and is it what the agent runs?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c16" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" value="managed_config_valid&lt;br&gt;managed_config_applied" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c16" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" value="Onboarding: 7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="400" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" value="&lt;b&gt;Onboarded to the right tenant, healthy, with its own identity, reaching the cloud?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c19" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" value="onboarded&lt;br&gt;organisation&lt;br&gt;healthy&lt;br&gt;health_issues&lt;br&gt;edr_identity&lt;br&gt;unique_identity&lt;br&gt;cloud_connectivity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9673a6;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c19" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" value="The system: 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="670" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" value="&lt;b&gt;Has it upset SELinux?&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c22" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" value="selinux_policy&lt;br&gt;selinux_denials&lt;br&gt;selinux_mode_unchanged" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c22" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" value="Resources: 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="570" y="670" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" value="&lt;b&gt;What does it cost the host in CPU, memory and disk? Numbers, for limits in the report.&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c25" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" value="resource_usage&lt;br&gt;disk_usage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c25" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" value="Upgrade: 9" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=15;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="670" width="510" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" value="&lt;b&gt;After an upgrade, against a snapshot: newer version, same identity, nothing lost.&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontColor=#000000;" parent="c28" vertex="1">
+          <mxGeometry x="15" y="38" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" value="upgrade_compared&lt;br&gt;upgrade_version&lt;br&gt;upgrade_identity&lt;br&gt;upgrade_settings&lt;br&gt;upgrade_exclusions&lt;br&gt;upgrade_health_fields&lt;br&gt;upgrade_definitions&lt;br&gt;upgrade_dependencies&lt;br&gt;upgrade_resources" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacing=6;arcSize=12;fontFamily=Courier New;" parent="c28" vertex="1">
+          <mxGeometry x="15" y="95" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" value="&lt;b&gt;Every check reports&lt;/b&gt; a status (passed, failed, error, or skipped with the reason), a severity (critical, high, medium, low, info), a detail, what to do about it, and numbers where it measures something (a scan's duration_seconds, Defender's memory_mib)." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="1" vertex="1">
+          <mxGeometry x="40" y="950" width="1570" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Testing an upgrade" id="testing-an-upgrade">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c2" value="Testing an upgrade: what a minor release changed" style="text;html=1;align=left;verticalAlign=top;fontSize=26;fontStyle=1;fontColor=#1E3A8A;" parent="1" vertex="1">
+          <mxGeometry x="40" y="20" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="Snapshot a host on the version the estate runs, upgrade it, compare. The report also lists what regressed." style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#4D4D4D;whiteSpace=wrap;" parent="1" vertex="1">
+          <mxGeometry x="40" y="62" width="1500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="Before: the version the estate runs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="140" width="1570" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;libre_devops.mde_linux&lt;/b&gt;&lt;br&gt;installs 101.26091.0004" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="20" y="60" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c6" value="&lt;b&gt;libre_devops.mde_linux_checks&lt;/b&gt;&lt;br&gt;profile health&lt;br&gt;snapshot_to" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="360" y="50" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c7" value="&lt;b&gt;Snapshot&lt;/b&gt;&lt;br&gt;snapshots/&amp;lt;host&amp;gt;.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;shape=cylinder3;" parent="c4" vertex="1">
+          <mxGeometry x="740" y="40" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" value="&lt;b&gt;libre_devops.test_results_report&lt;/b&gt;&lt;br&gt;artifacts/before/&lt;br&gt;test-results.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c4" vertex="1">
+          <mxGeometry x="1080" y="50" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1" source="c5" target="c6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" value="save" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1" source="c6" target="c7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" value="results" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c6" target="c8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1270" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c12" value="After: the new version" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F8FF;strokeColor=#0078D4;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="420" width="1570" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" value="&lt;b&gt;libre_devops.mde_linux&lt;/b&gt;&lt;br&gt;installs 101.26101.0000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c12" vertex="1">
+          <mxGeometry x="20" y="70" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c14" value="&lt;b&gt;libre_devops.mde_linux_checks&lt;/b&gt;&lt;br&gt;compare_to the snapshot&lt;br&gt;adds the 9 upgrade_ checks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c12" vertex="1">
+          <mxGeometry x="360" y="60" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" value="&lt;b&gt;libre_devops.test_results_report&lt;/b&gt;&lt;br&gt;compare_to the earlier report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;spacing=6;arcSize=12;" parent="c12" vertex="1">
+          <mxGeometry x="1080" y="60" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" value="For every check: &lt;b&gt;new&lt;/b&gt;, &lt;b&gt;fixed&lt;/b&gt;, &lt;b&gt;regressed&lt;/b&gt; or unchanged; and checks that stopped running" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c12" vertex="1">
+          <mxGeometry x="1080" y="175" width="470" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1" source="c13" target="c14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c18" value="results" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1" source="c14" target="c15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c19" value="compare_to" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" parent="1" edge="1" source="c7" target="c14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" value="compare_to" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1E3A8A;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c8" target="c15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" value="What the upgrade checks catch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;container=1;collapsible=0;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="40" y="730" width="1570" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" value="&lt;b&gt;upgrade_version&lt;/b&gt; (Critical)&lt;br&gt;A newer version than the snapshot. The same, or a downgrade, fails." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="20" y="45" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" value="&lt;b&gt;upgrade_identity&lt;/b&gt; (Critical)&lt;br&gt;machine_guid, edr_machine_id and org_id unchanged: no second device in the portal." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="535" y="45" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c24" value="&lt;b&gt;upgrade_settings&lt;/b&gt; (High)&lt;br&gt;The settings you name are unchanged, and still managed if they were." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="1050" y="45" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c25" value="&lt;b&gt;upgrade_exclusions&lt;/b&gt; (High)&lt;br&gt;The antivirus exclusions are unchanged." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="20" y="160" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c26" value="&lt;b&gt;upgrade_health_fields&lt;/b&gt; (Medium)&lt;br&gt;mdatp health still reports every field: scripts and monitoring that read one keep working." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="535" y="160" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c27" value="&lt;b&gt;upgrade_definitions&lt;/b&gt; (Medium)&lt;br&gt;Security intelligence was not rolled back." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="1050" y="160" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c28" value="&lt;b&gt;upgrade_dependencies&lt;/b&gt; (Info)&lt;br&gt;No new package dependencies: offline hosts and Satellite content views need them too." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="20" y="275" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c29" value="&lt;b&gt;upgrade_resources&lt;/b&gt; (Info)&lt;br&gt;Memory before and after, as memory_change_percent, for a limit." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="535" y="275" width="495" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" value="&lt;b&gt;upgrade_compared&lt;/b&gt; (High)&lt;br&gt;A snapshot was compared at all. Skipped without one, an error when the file is missing." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=middle;spacing=6;arcSize=12;" parent="c21" vertex="1">
+          <mxGeometry x="1050" y="275" width="495" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
