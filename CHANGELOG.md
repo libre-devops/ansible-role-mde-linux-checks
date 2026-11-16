@@ -4,6 +4,8 @@ Notable changes to this role. The format follows [Keep a Changelog](https://keep
 
 ## Unreleased
 
+## 1.1.0 - 2026-11-16
+
 ### Added
 
 - RHEL 7. `ebpf_supported` now uses Microsoft's minimum kernel for the eBPF provider on each distribution (RHEL and CentOS 7.6 and later: 3.10.0-957.10), and looks for BTF only off that table: RHEL 7 has no BTF but is supported. The probe reads `timedatectl status` where `timedatectl show` is missing (systemd before 239, such as RHEL 7's 219). `no_service_restarts` says when systemd does not count restarts (before 235). CI runs `no_agent` on UBI 7.
